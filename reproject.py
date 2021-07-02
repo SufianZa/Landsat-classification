@@ -4,15 +4,14 @@ import rasterio
 from rasterio.enums import Resampling
 from rasterio.warp import calculate_default_transform, reproject
 
-file = "C:\\Users\\Sufian\\Downloads\\CA_forest_VLCE_2015\\CA_forest_VLCE_2015.tif"
+file = "CA_forest_VLCE_2015\\CA_forest_VLCE_2015.tif"
 
 from string import Template
 
-t = Template('data/LC08_L1TP_024022_20150715_20170226_01_T1_B$band.TIF')
+t = Template('data/LC08_L1TP_042021_20150830_20170225_01_T1.tar/LC08_L1TP_042021_20150830_20170225_01_T1_B$band.TIF')
 
 with rasterio.open(file) as ds:
     dst_src = ds.crs
-
 
     with rasterio.open(t.substitute(dict(band=2))) as band:
         transform, width, height = calculate_default_transform(
