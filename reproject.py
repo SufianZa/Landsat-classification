@@ -8,14 +8,14 @@ file = "CA_forest_VLCE_2015\\CA_forest_VLCE_2015.tif"
 
 from string import Template
 
-t = Template('data/LC08_L1TP_042021_20150830_20170225_01_T1.tar/LC08_L1TP_042021_20150830_20170225_01_T1_B$band.TIF')
+t = Template('ndata/LC08_L2SP_042021_20150830_20200908_02_T1/LC08_L2SP_042021_20150830_20200908_02_T1_SR_B$band.TIF')
 
 with rasterio.open(file) as ds:
     dst_src = ds.crs
 
-    with rasterio.open(t.substitute(dict(band=2))) as band:
+    with rasterio.open(t.substitute(dict(band=2)), read='r+') as band:
         transform, width, height = calculate_default_transform(
-            band.crs, dst_src, band.width, band.height, *band.bounds)
+            band.crs, dst_src, band.width, band.height, *band.bounds, resolution=ds.res)
         kwargs = band.meta.copy()
         kwargs.update({
             'crs': dst_src,
@@ -37,3 +37,17 @@ with rasterio.open('result.tif', 'w', **kwargs) as dst:
                     dst_transform=transform,
                     dst_crs=dst_src,
                     resampling=Resampling.nearest)
+
+# with rasterio.open('PAN.tif', 'w', **kwargs) as dst:
+#         print('Band %s' % 8)
+#         with rasterio.open(t.substitute(dict(band=8))) as band:
+#                 reproject(
+#                     source=rasterio.band(band, 1),
+#                     destination=rasterio.band(dst, 1),
+#                     src_transform=band.transform,
+#                     src_crs=band.crs,
+#                     dst_transform=transform,
+#                     dst_crs=dst_src,
+#                     resampling=Resampling.nearest)
+
+# with rasterio.open('PAN.tif', 'w', **kwargs) as dst:

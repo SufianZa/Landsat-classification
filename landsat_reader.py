@@ -3,7 +3,8 @@ from landsatxplore.api import API
 from landsatxplore.earthexplorer import EarthExplorer
 import os
 
-username, password = os.environ['UN_EarthE'], os.environ['PW_EarthE']
+# username, password = os.getenv('UN_EarthE'), os.getenv('PW_EarthE')
+username, password = 'szaabalawi', '.x3a9qQEH7CiCRf'
 file = "C:\\Users\\Sufian\\Downloads\\CA_forest_VLCE_2015\\CA_forest_VLCE_2015.tif"
 
 # Initialize a new API instance and get an access key
@@ -12,6 +13,7 @@ api = API(username, password)
 # search area
 west, south, east, north = -127.4439, 48.9225, -84.1984, 58.9953
 
+# search time range
 start_date = '2015-07-15'
 end_date = '2015-08-30'
 
@@ -28,11 +30,11 @@ print(f"{len(scenes)} scenes found.")
 api.logout()
 
 ee = EarthExplorer(username, password)
-# Process the result
+
 for scene in scenes:
     print(scene['entity_id'])
     try:
-        ee.download(identifier=scene['entity_id'], output_dir='./data')
+        ee.download(identifier=scene['entity_id'], dataset='landsat_ot_c2_l2', output_dir='./ndata')
     except Exception as e:
         print(e)
 ee.logout()
