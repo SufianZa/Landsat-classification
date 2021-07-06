@@ -3,8 +3,7 @@ from landsatxplore.api import API
 from landsatxplore.earthexplorer import EarthExplorer
 import os
 
-# username, password = os.getenv('UN_EarthE'), os.getenv('PW_EarthE')
-username, password = 'szaabalawi', '.x3a9qQEH7CiCRf'
+username, password = os.getenv('UN_EarthE'), os.getenv('PW_EarthE')
 file = "C:\\Users\\Sufian\\Downloads\\CA_forest_VLCE_2015\\CA_forest_VLCE_2015.tif"
 
 # Initialize a new API instance and get an access key

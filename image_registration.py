@@ -63,7 +63,6 @@ with rasterio.open(file) as ds:
         mask[mask <= 0] = 0
         lc_masked = lc_rotated * mask
 
-
         # crop
         x, y = np.nonzero(mask)
         ls_cropped = ls_rotated[np.ix_(np.unique(x), np.unique(y))]

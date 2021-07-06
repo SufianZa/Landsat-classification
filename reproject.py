@@ -37,17 +37,3 @@ with rasterio.open('result.tif', 'w', **kwargs) as dst:
                     dst_transform=transform,
                     dst_crs=dst_src,
                     resampling=Resampling.nearest)
-
-# with rasterio.open('PAN.tif', 'w', **kwargs) as dst:
-#         print('Band %s' % 8)
-#         with rasterio.open(t.substitute(dict(band=8))) as band:
-#                 reproject(
-#                     source=rasterio.band(band, 1),
-#                     destination=rasterio.band(dst, 1),
-#                     src_transform=band.transform,
-#                     src_crs=band.crs,
-#                     dst_transform=transform,
-#                     dst_crs=dst_src,
-#                     resampling=Resampling.nearest)
-
-# with rasterio.open('PAN.tif', 'w', **kwargs) as dst:
