@@ -59,7 +59,9 @@ def generate_patches(train_image, label_image, train=True, bands=None,
             # create categorical mask
             for c in class_assignment:
                 label_patch_converted[label_patch == original_classes[c]] = model_classes[c]
-
+            ######
+            # TODO consider having pixel-wise balanced across the dataset
+            ######
             # create directories
             Path('dataset', subset_name, 'inputs', 'input').mkdir(parents=True, exist_ok=True)
             Path('dataset', subset_name, 'labels', 'label').mkdir(parents=True, exist_ok=True)
