@@ -8,7 +8,7 @@ file = "CA_forest_VLCE_2015\\CA_forest_VLCE_2015.tif"
 
 from string import Template
 
-t = Template('ndata/LC08_L2SP_042021_20150830_20200908_02_T1/LC08_L2SP_042021_20150830_20200908_02_T1_SR_B$band.TIF')
+t = Template('ndata/f/LC08_L2SP_022027_20150717_20200909_02_T2_SR_B$band.TIF')
 
 with rasterio.open(file) as ds:
     dst_src = ds.crs

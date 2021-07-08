@@ -83,7 +83,7 @@ def image_registration(landsat_image_path):
             ls_cropped[:, :, 0] = ls_cropped[:, :, 0]
             ls_cropped[:, :, 1] = ls_cropped[:, :, 1]
             ls_cropped[:, :, 2] = ls_cropped[:, :, 2]
-            ls_cropped[:, :, 4] = ls_cropped[:, :, 4]
+            ls_cropped[:, :, 3] = ls_cropped[:, :, 3]
 
             return ls_cropped, lc_cropped
 
@@ -113,8 +113,10 @@ def image_registration(landsat_image_path):
             # ax[0][3].set_axis_off()
             # ax[1][3].set_axis_off()
             # plt.show()
-
-            # overlay images
+            #
+            # # overlay images
             # plt.imshow(ls_cropped, alpha=0.9)
             # plt.imshow(lc_cropped, cmap='nipy_spectral', alpha=0.1)
             # plt.show()
+
+# image_registration('test_result.tif')

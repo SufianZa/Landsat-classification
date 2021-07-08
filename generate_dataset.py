@@ -27,14 +27,14 @@ model_classes = {c: idx for idx, c in enumerate(classes_names)}
 
 
 def generate_patches(train_image, label_image, train=True, bands=None,
-                     class_assignment=None, data_id='',
+                     class_assignment=[], data_id='',
                      patch_size=256,
                      patches_per_map=15):
     # get all classes if no specific were given
-    if class_assignment is None:
+    if len(class_assignment) == 0:
         class_assignment = classes_names
 
-    # calculate most important indices
+    # calculate indices then fit the index of the patches
     sampling_weights = label_image[patch_size // 2:-patch_size // 2, patch_size // 2:-patch_size // 2].astype(np.float)
     linear = np.cumsum(sampling_weights)
     linear /= linear[-1]
@@ -60,7 +60,7 @@ def generate_patches(train_image, label_image, train=True, bands=None,
             for c in class_assignment:
                 label_patch_converted[label_patch == original_classes[c]] = model_classes[c]
             ######
-            # TODO consider having pixel-wise balanced across the dataset
+            # TODO consider of having pixel-wise balance across the dataset
             ######
             # create directories
             Path('dataset', subset_name, 'inputs', 'input').mkdir(parents=True, exist_ok=True)
@@ -76,5 +76,6 @@ def generate_patches(train_image, label_image, train=True, bands=None,
 
 
 if __name__ == '__main__':
+    classes = ['water', 'wetland', 'shrubland', 'wetlandtreed']
     generate_patches(*image_registration('result.tif'), train=True,
-                     class_assignment=['water', 'wetland', 'shrubland', 'wetlandtreed'], patches_per_map=2500) 
+                     class_assignment=[], patches_per_map=8000)
