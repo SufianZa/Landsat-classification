@@ -1,9 +1,5 @@
-import sys
 from pathlib import Path
-import cv2
-import matplotlib.pyplot as plt
 from PIL import Image
-from scipy.ndimage import distance_transform_edt
 import os
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -26,7 +22,7 @@ classes_names = list(original_classes.keys())
 model_classes = {c: idx for idx, c in enumerate(classes_names)}
 
 
-def generate_patches(train_image, label_image, train=True, bands=None,
+def generate_patches(train_image, label_image, train_flag=True, bands=None,
                      class_assignment=[], data_id='',
                      patch_size=256,
                      patches_per_map=15):
@@ -34,18 +30,18 @@ def generate_patches(train_image, label_image, train=True, bands=None,
     if len(class_assignment) == 0:
         class_assignment = classes_names
 
-    # calculate indices then fit the index of the patches
-    sampling_weights = label_image[patch_size // 2:-patch_size // 2, patch_size // 2:-patch_size // 2].astype(np.float)
+    # calculate random indices to get patches
+    sampling_weights = label_image[patch_size // 2:-patch_size // 2, patch_size // 2:-patch_size // 2].astype(np.float_)
     linear = np.cumsum(sampling_weights)
     linear /= linear[-1]
     indices = np.searchsorted(linear, np.random.random_sample(patches_per_map), side='right')
 
-    if train:
-        # splitting the image into patches 80% train,15% validation, %5 test
-        train, validation_test = train_test_split(indices, test_size=0.20, shuffle=True)
-        validation, test = train_test_split(validation_test, test_size=0.25, shuffle=True)
-        data = dict(train=train, validation=validation, test=test)
+    if train_flag:
+        # splitting the image into patches 80% train, 20% validation
+        train, validation= train_test_split(indices, test_size=0.20, shuffle=True)
+        data = dict(train=train, validation=validation)
     else:
+        # all dataset is used for testing
         data = dict(test=indices)
 
     for subset_name, subset in data.items():
@@ -63,19 +59,30 @@ def generate_patches(train_image, label_image, train=True, bands=None,
             # TODO consider of having pixel-wise balance across the dataset
             ######
             # create directories
-            Path('dataset', subset_name, 'inputs', 'input').mkdir(parents=True, exist_ok=True)
+            Path('dataset', subset_name, 'RGBinputs', 'input').mkdir(parents=True, exist_ok=True)
+            Path('dataset', subset_name, 'NIRinputs', 'input').mkdir(parents=True, exist_ok=True)
             Path('dataset', subset_name, 'labels', 'label').mkdir(parents=True, exist_ok=True)
 
             # save patches
-            Image.fromarray((input_patch * 255).astype(np.uint8)).save(
-                os.path.join('dataset/{0}/{1}s/{1}'.format(subset_name, 'input'),
+            # RGB
+            Image.fromarray((input_patch[:, :, :3] * 255).astype(np.uint8)).save(
+                os.path.join('dataset/{0}/{1}/{2}'.format(subset_name, 'RGBinputs', 'input'),
                              "{}img-{}.tiff".format(data_id, i)))
+            # NIR
+            Image.fromarray((input_patch[:, :, 3:] * 255).astype(np.uint8)).save(
+                os.path.join('dataset/{0}/{1}/{2}'.format(subset_name, 'NIRinputs', 'input'),
+                             "{}img-{}.tiff".format(data_id, i)))
+            # Labels
             Image.fromarray(label_patch_converted.astype(np.uint8)).save(
-                os.path.join('dataset/{0}/{1}s/{1}'.format(subset_name, 'label'),
+                os.path.join('dataset/{0}/{1}/{2}'.format(subset_name, 'labels', 'label'),
                              "{}img-{}.tiff".format(data_id, i)))
 
 
 if __name__ == '__main__':
-    classes = ['water', 'wetland', 'shrubland', 'wetlandtreed']
-    generate_patches(*image_registration('result.tif'), train=True,
-                     class_assignment=[], patches_per_map=8000)
+    classes = ['water']
+    generate_patches(*image_registration('result_ff.tif'), train_flag=True, data_id='1',
+                     class_assignment=classes, patches_per_map=1500)
+    generate_patches(*image_registration('result_fff.tif'), train_flag=True, data_id='2',
+                     class_assignment=classes, patches_per_map=1500)
+    generate_patches(*image_registration('result_ffff.tif'), train_flag=False, data_id='3',
+                     class_assignment=classes, patches_per_map=100)
