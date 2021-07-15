@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from landsatxplore.api import API
 from landsatxplore.earthexplorer import EarthExplorer
 import os
@@ -7,8 +9,8 @@ import requests
 # download land cover dataset
 land_cover_url = 'https://opendata.nfis.org/downloads/forest_change/CA_forest_VLCE_2015.zip'
 response = requests.get(land_cover_url, stream=True)
-
-with open("landcover.zip", "wb") as handle:
+Path('./landcover').mkdir(parents=True, exist_ok=True)
+with open(str(Path('./landcover', 'land_cover.zip')), "wb") as handle:
     for data in tqdm(response.iter_content()):
         handle.write(data)
 
