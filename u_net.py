@@ -152,29 +152,29 @@ class UNET:
         y = np.array(y)
         self.model.load_weights(self.weight_file)
         output = np.squeeze(self.model.predict(x, verbose=0))
-        for i in np.arange(0, output.shape[0], 4):
-            fig, ax = plt.subplots(4, 3)
-            for j in range(4):
-                inp = x[i+j, :, :, :3]
-                pre = output[i+j, ...]
+        n_rows = 4
+        for i in np.arange(0, output.shape[0], n_rows):
+            fig, ax = plt.subplots(n_rows, 3)
+            for row in range(n_rows):
+                inp = x[i+row, :, :, :3]
+                pre = output[i+row, ...]
                 pre = (pre - np.amin(pre)) * 1.0 / (np.amax(pre) - np.amin(pre))
-                ori = y[i+j, ...]
+                ori = y[i+row, ...]
                 pre[pre > 0.7] = 1
                 pre[pre <= 0.7] = 0
 
-                fig.suptitle('Estimation {}'.format(i+j))
-                ax[j][0].imshow(inp)
-                ax[j][1].imshow(np.array([[colors[int(val)]] for val in pre.reshape(-1)]).reshape(*pre.shape, 3))
-                ax[j][2].imshow(np.array([[colors[int(val)]] for val in ori.reshape(-1)]).reshape(*ori.shape, 3))
+                fig.suptitle('Estimation {}'.format(i))
+                ax[row][0].imshow(inp)
+                ax[row][1].imshow(np.array([[colors[int(val)]] for val in pre.reshape(-1)]).reshape(*pre.shape, 3))
+                ax[row][2].imshow(np.array([[colors[int(val)]] for val in ori.reshape(-1)]).reshape(*ori.shape, 3))
 
-                ax[j][0].title.set_text('input')
-                ax[j][1].title.set_text('Estimated')
-                ax[j][2].title.set_text('Ground truth')
+                ax[row][0].title.set_text('input')
+                ax[row][1].title.set_text('Estimated')
+                ax[row][2].title.set_text('Ground truth')
 
-                ax[j][0].axis('off')
-                ax[j][1].axis('off')
-                ax[j][2].axis('off')
-
+                ax[row][0].axis('off')
+                ax[row][1].axis('off')
+                ax[row][2].axis('off')
 
             plt.legend(handles=colors_legend, borderaxespad=-15, fontsize='x-small')
             plt.show()
