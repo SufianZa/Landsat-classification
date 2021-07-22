@@ -1,7 +1,8 @@
 import os
 import pickle
 from pathlib import Path
-
+from PIL import Image
+from matplotlib import pyplot as plt, patches
 import numpy as np
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D
@@ -9,6 +10,22 @@ from tensorflow.python.keras.backend import concatenate
 from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.python.keras.layers import Conv2DTranspose
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
+
+original_classes = dict(no_change=0,
+                        water=20,
+                        snow_ice=31,
+                        rock_rubble=32,
+                        exposed_barren_land=33,
+                        bryoids=40,
+                        shrubland=50,
+                        wetland=80,
+                        wetlandtreed=81,
+                        herbs=100,
+                        coniferous=210,
+                        broadleaf=220,
+                        mixedwood=230)
+classes_names = list(original_classes.keys())
+model_classes = {c: idx for idx, c in enumerate(classes_names)}
 
 
 class UNET:
@@ -45,7 +62,7 @@ class UNET:
         de_conv_2 = Conv2D(64, (3, 3), padding="same", activation="relu")(concat)
         de_conv_2 = Conv2D(64, (3, 3), padding="same", activation="relu")(de_conv_2)
         de_conv_1 = Conv2DTranspose(32, (3, 3), strides=2, padding='same')(de_conv_2)
-        concat = concatenate([de_conv_1, conv_2])
+        concat = concatenate([de_conv_1, conv_1])
         de_conv_1 = Conv2D(32, (3, 3), padding="same", activation="relu")(concat)
         de_conv_1 = Conv2D(32, (3, 3), padding="same", activation="relu")(de_conv_1)
         outputs = Conv2D(1, (1, 1), padding="same", activation="sigmoid")(de_conv_1)
@@ -101,9 +118,7 @@ class UNET:
         _, _, num_of_train = next(os.walk(str(Path('dataset', 'train', 'RGBinputs', 'input'))))
         _, _, num_of_val = next(os.walk(str(Path('dataset', 'validation', 'RGBinputs', 'input'))))
 
-        print(len(num_of_train))
-        print(len(num_of_val))
-        print(self.batch_size)
+        print('Start training with %d images and %d images for validation' % (len(num_of_train), len(num_of_val)))
         self.history = self.model.fit(train_gen,
                                       steps_per_epoch=len(num_of_train) // self.batch_size,
                                       epochs=self.epochs,
@@ -113,3 +128,53 @@ class UNET:
 
         with open('history.json', 'wb') as file_pi:
             pickle.dump(self.history.history, file_pi)
+
+    def test(self):
+        """
+            Tests the model on the test images in the pre-defined paths in global variables
+            then plots a comparison of the prediction and ground truth patches
+        """
+        x = []
+        y = []
+        colors = [(0, 0, 0)] + list(plt.cm.get_cmap('Paired').colors)
+        colors_legend = [patches.Patch(color=colors[i], label=classes_names[i]) for i in range(len(colors))]
+
+        for img_path in list(Path('dataset/test/RGBinputs/input').glob('*.*'))[::10]:
+            name = os.path.basename(img_path)
+            img_rgb = np.array(Image.open(img_path))
+            img_nir = np.array(Image.open(str(img_path).replace('RGBinputs', 'NIRinputs')))
+            mask = np.array(
+                Image.open(os.path.join(Path('dataset/test/labels/label'), name)))  # read image
+            img = np.dstack((img_rgb, img_nir)) * 1.0 / 255
+            x.append(img)
+            y.append(mask)
+        x = np.array(x)
+        y = np.array(y)
+        self.model.load_weights(self.weight_file)
+        output = np.squeeze(self.model.predict(x, verbose=0))
+        for i in np.arange(0, output.shape[0], 4):
+            fig, ax = plt.subplots(4, 3)
+            for j in range(4):
+                inp = x[i+j, :, :, :3]
+                pre = output[i+j, ...]
+                pre = (pre - np.amin(pre)) * 1.0 / (np.amax(pre) - np.amin(pre))
+                ori = y[i+j, ...]
+                pre[pre > 0.7] = 1
+                pre[pre <= 0.7] = 0
+
+                fig.suptitle('Estimation {}'.format(i+j))
+                ax[j][0].imshow(inp)
+                ax[j][1].imshow(np.array([[colors[int(val)]] for val in pre.reshape(-1)]).reshape(*pre.shape, 3))
+                ax[j][2].imshow(np.array([[colors[int(val)]] for val in ori.reshape(-1)]).reshape(*ori.shape, 3))
+
+                ax[j][0].title.set_text('input')
+                ax[j][1].title.set_text('Estimated')
+                ax[j][2].title.set_text('Ground truth')
+
+                ax[j][0].axis('off')
+                ax[j][1].axis('off')
+                ax[j][2].axis('off')
+
+
+            plt.legend(handles=colors_legend, borderaxespad=-15, fontsize='x-small')
+            plt.show()
