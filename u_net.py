@@ -1,9 +1,12 @@
+import os
+import pickle
 from pathlib import Path
 
 import numpy as np
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D
 from tensorflow.python.keras.backend import concatenate
+from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.python.keras.layers import Conv2DTranspose
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
@@ -84,3 +87,29 @@ class UNET:
 
         while True:
             yield np.concatenate((next(X_train_RGB)[0], next(X_train_NIR)[0]), axis=3), next(y_train)[0]
+
+    def train(self):
+        checkpoint = ModelCheckpoint(self.weight_file, verbose=1, monitor='val_loss', save_best_only=True, mode='min')
+        early_stop = EarlyStopping(monitor='val_loss',
+                                   min_delta=0,
+                                   patience=3,
+                                   verbose=0, mode='auto')
+
+        train_gen = self.multi_spectral_image_generator('train')
+        val_gen = self.multi_spectral_image_generator('validation')
+
+        _, _, num_of_train = next(os.walk(str(Path('dataset', 'train', 'RGBinputs', 'input'))))
+        _, _, num_of_val = next(os.walk(str(Path('dataset', 'validation', 'RGBinputs', 'input'))))
+
+        print(len(num_of_train))
+        print(len(num_of_val))
+        print(self.batch_size)
+        self.history = self.model.fit(train_gen,
+                                      steps_per_epoch=len(num_of_train) // self.batch_size,
+                                      epochs=self.epochs,
+                                      validation_steps=len(num_of_val) // self.batch_size,
+                                      validation_data=val_gen,
+                                      callbacks=[checkpoint, early_stop])
+
+        with open('history.json', 'wb') as file_pi:
+            pickle.dump(self.history.history, file_pi)
