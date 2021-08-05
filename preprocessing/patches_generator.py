@@ -3,7 +3,6 @@ from PIL import Image
 import os
 import numpy as np
 from sklearn.model_selection import train_test_split
-from image_registration import rotate_dataset
 
 original_classes = dict(no_change=0,
                         water=20,
@@ -59,9 +58,9 @@ def generate_patches(train_image, label_image, train_flag=True, bands=None,
             # TODO consider of having pixel-wise balance across the dataset
             ######
             # create directories
-            Path('../dataset', subset_name, 'RGBinputs', 'input').mkdir(parents=True, exist_ok=True)
-            Path('../dataset', subset_name, 'NIRinputs', 'input').mkdir(parents=True, exist_ok=True)
-            Path('../dataset', subset_name, 'labels', 'label').mkdir(parents=True, exist_ok=True)
+            Path('./dataset', subset_name, 'RGBinputs', 'input').mkdir(parents=True, exist_ok=True)
+            Path('./dataset', subset_name, 'NIRinputs', 'input').mkdir(parents=True, exist_ok=True)
+            Path('./dataset', subset_name, 'labels', 'label').mkdir(parents=True, exist_ok=True)
 
             # save patches
             # RGB

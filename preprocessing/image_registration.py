@@ -12,7 +12,7 @@ import re
 
 REFLECTANCE_MAX_BAND = 65535
 PADDING_EDGE = 100
-LAND_COVER_FILE = "../CA_forest_VLCE_2015/CA_forest_VLCE_2015.tif"
+LAND_COVER_FILE = "./CA_forest_VLCE_2015/CA_forest_VLCE_2015.tif"
 SUPPORTED_BANDS = [2, 3, 4, 5, 6, 7]
 
 
@@ -22,7 +22,7 @@ def merge_reprojected_bands(datasets_folder):
     for root, dirs, files in walk(datasets_folder):
         f = []
         for file in files:
-            if re.search('SR_B[2-9].TIF$', file) is not None:
+            if re.search('SR_B[2-7].TIF$', file) is not None:
                 f.append(Path(root, file))
         if len(f) > 0:
             datasets_dict['dataset%d' % i] = str(Path(root, Path(file).stem[:-1]))
@@ -57,63 +57,69 @@ def merge_reprojected_bands(datasets_folder):
     return list(datasets_dict.keys())
 
 
-def rotate_dataset(landsat_dataset_path, enhance_colors=False, show_preprocessing_steps=False):
-    with rasterio.open(LAND_COVER_FILE) as ds:
-        with rasterio.open(landsat_dataset_path) as l_sat:
-            west, south, east, north = l_sat.bounds
+def rotate_datasets(landsat_dataset_path, enhance_colors=False, show_preprocessing_steps=False, label=True):
+    with rasterio.open(landsat_dataset_path) as l_sat:
+        west, south, east, north = l_sat.bounds
+        bands = []
+        masks = []
+        # collect and normalize spectral bands
+        for band_num in SUPPORTED_BANDS:
+            band = l_sat.read(band_num)
+            if band_num in [2, 3, 4]:
+                masks.append(band != 0)
+            band = band / REFLECTANCE_MAX_BAND
+            bands.append(band)
+
+        # stacking Multi-spectral image containing -> (Blue, Green, Red, NIR, SWIR 1, SWIR 2)
+        ls_original = np.array(bands).transpose([1, 2, 0])
+
+        # extract mask from the bands
+        mask = np.mean(np.array(masks).transpose([1, 2, 0]), axis=2)
+        mask[mask > 0] = 1
+        mask[mask <= 0] = 0
+
+        # calculate the angle to perform the affine transformation of the (rotated) dataset
+        coords = np.column_stack(np.where(mask))
+        angle = cv.minAreaRect(coords)[-1]
+        angle = -(90 + angle) if angle < -45 else -angle
+        w, h, _ = ls_original.shape
+        center = (w // 2, h // 2)
+        M = cv.getRotationMatrix2D(center, angle, 1.0)
+
+        # perform affine transformation of landsat
+        ls_rotated = cv.warpAffine(ls_original, M, (h, w),
+                                   flags=cv.INTER_NEAREST,
+                                   borderMode=cv.BORDER_CONSTANT)
+
+        # perform affine transformation the original mask
+        mask = cv.warpAffine(mask, M, (h, w),
+                             flags=cv.INTER_NEAREST,
+                             borderMode=cv.BORDER_CONSTANT)
+        # crop
+        x, y = np.nonzero(mask)
+        ls_cropped = ls_rotated[np.ix_(np.unique(x), np.unique(y))]
+
+        # remove padding on the edges
+        ls_cropped = ls_cropped[PADDING_EDGE:-PADDING_EDGE, PADDING_EDGE:-PADDING_EDGE]
+
+        if not label:
+            return ls_cropped
+
+        with rasterio.open(LAND_COVER_FILE) as ds:
             # reading a window oo landcover dataset according to landsat boundries
             lc_original = ds.read(1, window=from_bounds(west, south, east, north, transform=ds.transform))
-            bands = []
-            masks = []
-            # collect and normalize spectral bands
-            for band_num in SUPPORTED_BANDS:
-                band = l_sat.read(band_num)
-                if band_num in [2, 3, 4]:
-                    masks.append(band != 0)
-                band = band / REFLECTANCE_MAX_BAND
-                band = (band - np.min(band)) / (np.max(band) - np.min(band))
-                bands.append(band)
-
-            # stacking Multi-spectral image containing -> (Blue, Green, Red, NIR, SWIR 1, SWIR 2)
-            ls_original = np.array(bands).transpose([1, 2, 0])
-
-            # extract mask from the bands
-            mask = np.mean(np.array(masks).transpose([1, 2, 0]), axis=2)
-            mask[mask > 0] = 1
-            mask[mask <= 0] = 0
-
-            # calculate the angle to perform the affine transformation of the (rotated) dataset
-            coords = np.column_stack(np.where(mask))
-            angle = cv.minAreaRect(coords)[-1]
-            angle = -(90 + angle) if angle < -45 else -angle
-            w, h = lc_original.shape
-            center = (w // 2, h // 2)
-            M = cv.getRotationMatrix2D(center, angle, 1.0)
-
             # perform affine transformation of landcover
             lc_rotated = cv.warpAffine(lc_original, M, (h, w),
                                        flags=cv.INTER_NEAREST,
                                        borderMode=cv.BORDER_CONSTANT)
-            # perform affine transformation of landsat
-            ls_rotated = cv.warpAffine(ls_original, M, (h, w),
-                                       flags=cv.INTER_NEAREST,
-                                       borderMode=cv.BORDER_CONSTANT)
-
-            # perform affine transformation the original mask
-            mask = cv.warpAffine(mask, M, (h, w),
-                                 flags=cv.INTER_NEAREST,
-                                 borderMode=cv.BORDER_CONSTANT)
 
             # masking land cover dataset
             lc_masked = lc_rotated * mask
 
             # crop
-            x, y = np.nonzero(mask)
-            ls_cropped = ls_rotated[np.ix_(np.unique(x), np.unique(y))]
             lc_cropped = lc_masked[np.ix_(np.unique(x), np.unique(y))]
 
             # remove padding on the edges
-            ls_cropped = ls_cropped[PADDING_EDGE:-PADDING_EDGE, PADDING_EDGE:-PADDING_EDGE]
             lc_cropped = lc_cropped[PADDING_EDGE:-PADDING_EDGE, PADDING_EDGE:-PADDING_EDGE]
 
             # enhance colors
