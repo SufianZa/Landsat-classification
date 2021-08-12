@@ -52,8 +52,8 @@ def generate_patches(train_image, label_image, train_flag=True, bands=None,
             label_patch_converted = np.zeros_like(label_patch)
 
             # create categorical mask
-            for c in class_assignment:
-                label_patch_converted[label_patch == original_classes[c]] = model_classes[c]
+            for index, c in enumerate(class_assignment, start=1):
+                label_patch_converted[label_patch == original_classes[c]] = index
             ######
             # TODO consider of having pixel-wise balance across the dataset
             ######

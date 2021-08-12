@@ -9,12 +9,12 @@ TEST_DATASETS = 'test'
 # reproject each dataset then obtain a list of paths
 reprojected_train_datasets = merge_reprojected_bands(TRAIN_DATASETS)
 reprojected_test_datasets = merge_reprojected_bands(TEST_DATASETS)
-classes = []
+classes = ['water', 'coniferous', 'herbs']
 
 # create patches from the training datasets
 for i, dataset in enumerate(reprojected_train_datasets):
     generate_patches(*rotate_datasets(Path(TRAIN_DATASETS, '%s.tif' % dataset)), train_flag=True, data_id=i.__str__(),
-                     class_assignment=classes, patches_per_map=1500)
+                     class_assignment=classes, patches_per_map=1300)
 
 # create patches from the testing datasets
 for i, dataset in enumerate(reprojected_test_datasets):

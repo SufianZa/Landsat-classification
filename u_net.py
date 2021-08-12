@@ -5,14 +5,16 @@ import rasterio
 from PIL import Image
 from matplotlib import pyplot as plt, patches
 import numpy as np
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D
 from tensorflow.python.keras.backend import concatenate
 from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.python.keras.layers import Conv2DTranspose, Dropout
 from tensorflow.python.keras.optimizer_v2.adam import Adam
+from tensorflow.python.keras.optimizer_v2.gradient_descent import SGD
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 from preprocessing.image_registration import rotate_datasets
+from tensorflow.keras import backend as K
 
 original_classes = dict(no_change=0,
                         water=20,
@@ -27,11 +29,26 @@ original_classes = dict(no_change=0,
                         coniferous=210,
                         broadleaf=220,
                         mixedwood=230)
-classes_names = list(original_classes.keys())
-model_classes = {c: idx for idx, c in enumerate(classes_names)}
+
+selected_classes = ['no_change', 'water', 'coniferous', 'herbs']
+if len(selected_classes) == 0:
+    selected_classes = list(original_classes.keys())
+model_classes = {c: idx for idx, c in enumerate(original_classes) if c in selected_classes}
 
 colors = [(0, 0, 0)] + list(plt.cm.get_cmap('Paired').colors)
-colors_legend = [patches.Patch(color=colors[i], label=classes_names[i]) for i in range(len(colors))]
+colors_legend = [patches.Patch(color=colors[i], label=c) for i, c in enumerate(original_classes) if
+                 c in selected_classes]
+colors = [colors[i] for i, c in enumerate(original_classes) if c in selected_classes]
+
+
+def dice_coef(y_true, y_pred, smooth=1):
+    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
+    return (2. * intersection + smooth) / (K.sum(K.square(y_true), -1) + K.sum(K.square(y_pred), -1) + smooth)
+
+
+def dice_coef_loss(y_true, y_pred):
+    return 1 - dice_coef(y_true, y_pred)
+
 
 class UNET:
     def __init__(self, batch_size=64, epochs=30, window_size=256):
@@ -39,10 +56,12 @@ class UNET:
         self.batch_size = batch_size
         self.window_size = window_size
         self.epochs = epochs
-        self.weight_file = str(Path('best_weight.hdf5'))
+        self.weight_file = str(Path('3_class_best_weight.hdf5'))
         self.model = self.init_network((window_size, window_size, self.bands))
-        self.model.compile(loss='sparse_categorical_crossentropy', optimizer=Adam(learning_rate=0.0001),
+        self.model.compile(loss=dice_coef_loss, optimizer=Adam(learning_rate=0.001),  # Adam(learning_rate=0.001),
                            metrics=['accuracy'])
+        self.model = load_model(self.weight_file, custom_objects={'dice_coef_loss': dice_coef_loss})
+        # self.model.load_weights(self.weight_file)
 
     def init_network(self, input_size):
         """
@@ -55,7 +74,6 @@ class UNET:
         conv_2 = Conv2D(32, (3, 3), padding="same", strides=1, activation="relu")(pool)
         conv_2 = Conv2D(32, (3, 3), padding="same", strides=1, activation="relu")(conv_2)
         pool = MaxPooling2D((2, 2))(conv_2)
-        pool = Dropout(0.2)(pool)
         conv_3 = Conv2D(64, (3, 3), padding="same", strides=1, activation="relu")(pool)
         conv_3 = Conv2D(64, (3, 3), padding="same", strides=1, activation="relu")(conv_3)
         pool = MaxPooling2D((2, 2))(conv_3)
@@ -65,9 +83,13 @@ class UNET:
         conv_5 = Conv2D(256, (3, 3), padding="same", strides=1, activation="relu")(pool)
         conv_5 = Conv2D(256, (3, 3), padding="same", strides=1, activation="relu")(conv_5)
         pool = MaxPooling2D((2, 2))(conv_5)
+        pool = Dropout(0.5)(pool)
+
         bn = Conv2D(512, (3, 3), padding="same", strides=1, activation="relu")(pool)
         bn = Conv2D(512, (3, 3), padding="same", strides=1, activation="relu")(bn)
+
         de_conv_5 = Conv2DTranspose(256, (3, 3), strides=2, padding='same')(bn)
+        de_conv_5 = Dropout(0.5)(de_conv_5)
         concat = concatenate([de_conv_5, conv_5])
         de_conv_5 = Conv2D(256, (3, 3), padding="same", activation="relu")(concat)
         de_conv_5 = Conv2D(256, (3, 3), padding="same", activation="relu")(de_conv_5)
@@ -77,20 +99,17 @@ class UNET:
         de_conv_4 = Conv2D(128, (3, 3), padding="same", activation="relu")(de_conv_4)
         de_conv_3 = Conv2DTranspose(64, (3, 3), strides=2, padding='same')(de_conv_4)
         concat = concatenate([de_conv_3, conv_3])
-        concat = Dropout(0.1)(concat)
         de_conv_3 = Conv2D(64, (3, 3), padding="same", activation="relu")(concat)
         de_conv_3 = Conv2D(64, (3, 3), padding="same", activation="relu")(de_conv_3)
         de_conv_2 = Conv2DTranspose(32, (3, 3), strides=2, padding='same')(de_conv_3)
         concat = concatenate([de_conv_2, conv_2])
-        concat = Dropout(0.3)(concat)
         de_conv_2 = Conv2D(32, (3, 3), padding="same", activation="relu")(concat)
         de_conv_2 = Conv2D(32, (3, 3), padding="same", activation="relu")(de_conv_2)
         de_conv_1 = Conv2DTranspose(16, (3, 3), strides=2, padding='same')(de_conv_2)
         concat = concatenate([de_conv_1, conv_1])
-        concat = Dropout(0.5)(concat)
         de_conv_1 = Conv2D(16, (3, 3), padding="same", activation="relu")(concat)
         de_conv_1 = Conv2D(16, (3, 3), padding="same", activation="relu")(de_conv_1)
-        outputs = Conv2D(len(classes_names), (1, 1), padding="same", activation="softmax")(de_conv_1)
+        outputs = Conv2D(len(selected_classes), (1, 1), padding="same", activation="softmax")(de_conv_1)
         return Model(inputs=inputs, outputs=[outputs])
 
     def multi_spectral_image_generator(self, mode='train'):
@@ -101,15 +120,8 @@ class UNET:
                 can be set for "train" or "validation" data
         """
         # same seed should be in all generators
-        SEED = 213
+        SEED = 345
         data_gen_args = dict(rescale=1. / 255)
-        # apply augmentation only for train-data
-        if mode == 'train':
-            data_gen_args = dict(
-                rescale=1. / 255,
-                horizontal_flip=True,
-                vertical_flip=True
-            )
 
         X_train_RGB = ImageDataGenerator(**data_gen_args).flow_from_directory(
             str(Path('dataset', mode, 'RGBinputs', 'input').parent), batch_size=self.batch_size, color_mode='rgb',
@@ -128,7 +140,8 @@ class UNET:
             seed=SEED)
 
         while True:
-            yield np.concatenate((next(X_train_RGB)[0], next(X_train_NIR)[0]), axis=3), next(y_train)[0].astype(float)
+            yield np.concatenate((next(X_train_RGB)[0], next(X_train_NIR)[0]), axis=3), np.eye(len(selected_classes))[
+                np.squeeze(next(y_train)[0]).astype(int)]
 
     def train(self):
         checkpoint = ModelCheckpoint(self.weight_file, verbose=1, monitor='val_loss', save_best_only=True, mode='min')
@@ -161,7 +174,7 @@ class UNET:
         """
         x = []
         y = []
-        for img_path in list(Path('dataset/test/RGBinputs/input').glob('*.*'))[::20]:
+        for img_path in list(Path('dataset/test/RGBinputs/input').glob('*.*'))[::5]:
             name = os.path.basename(img_path)
             img_rgb = np.array(Image.open(img_path))
             img_nir = np.array(Image.open(str(img_path).replace('RGBinputs', 'NIRinputs')))
@@ -216,6 +229,7 @@ class UNET:
                            **profile) as dst:
             for i, band in enumerate(multi_image, start=2):
                 dst.write(band.read(1), i)
+                band.close()
         input_map = rotate_datasets(Path(path, 'merged.tif'), label=False)
         self.model.load_weights(self.weight_file)
         w, h, _ = input_map.shape
@@ -227,23 +241,22 @@ class UNET:
                 x_overflow = x + self.window_size
                 y_overflow = y + self.window_size
                 if x_overflow > w and y_overflow > h:
-                    x_overflow = w-1
-                    y_overflow = h-1
+                    x_overflow = w - 1
+                    y_overflow = h - 1
                 elif x_overflow > w:
-                    x_overflow = w-1
+                    x_overflow = w - 1
                 elif y_overflow > h:
-                    y_overflow = h-1
+                    y_overflow = h - 1
                 window_data = in_image[:, x:x_overflow, y:y_overflow, :]
                 window = np.zeros((1, self.window_size, self.window_size, self.bands))
                 window[:, :window_data.shape[1], :window_data.shape[2], :] = window_data
                 output_all = self.model.predict(window, verbose=0)
-                output = output_all[:,:window_data.shape[1],:window_data.shape[2],:]
-                output = (output - np.amin(output)) * 1.0 / (np.amax(output) - np.amin(output))
+                output = output_all[:, :window_data.shape[1], :window_data.shape[2], :]
                 res[x + trim:x_overflow - trim,
                 y + trim:y_overflow - trim] = np.argmax(output.squeeze()[
-                                                                  trim:window_data.shape[1] - trim,
-                                                                  trim:window_data.shape[2] - trim],
-                                                                  axis=2)
+                                                        trim:window_data.shape[1] - trim,
+                                                        trim:window_data.shape[2] - trim],
+                                                        axis=2)
         assert res.shape[0] == w and res.shape[1] == h
         print(res.shape[0], res.shape[1])
 
