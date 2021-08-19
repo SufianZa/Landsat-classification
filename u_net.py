@@ -11,7 +11,6 @@ from tensorflow.python.keras.backend import concatenate
 from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.python.keras.layers import Conv2DTranspose, Dropout
 from tensorflow.python.keras.optimizer_v2.adam import Adam
-from tensorflow.python.keras.optimizer_v2.gradient_descent import SGD
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
 from config import selected_classes, colors, colors_legend
@@ -42,7 +41,7 @@ def getTeilsGenerator(w, h, window_size, trim, in_image):
                 x_overflow = w - 1
             elif y_overflow > h:
                 y_overflow = h - 1
-            yield in_image[:, x:x_overflow, y:y_overflow, :]#, x, y, x_overflow, y_overflow
+            yield in_image[:, x:x_overflow, y:y_overflow, :], x, y, x_overflow, y_overflow
 
 
 
