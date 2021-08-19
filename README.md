@@ -24,7 +24,9 @@ Classes included in label data:
 - broadleaf 
 - mixedwood 
 
+
 ###Preprocessing
+
 The preparation of the train data consists of extracting pairs of input und output of the train and label data. This requires the datasets to be projected in the same spatial reference. Therefore, the landsat images were reprojected to match the same spatial reference of landcover dataset. After Datasets-registration patches with fixed size were extracted to prepare the train and label data.
 
 <img alt="Preprocessing" align="middle" src="./img/preprocessing.png"/>
