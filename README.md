@@ -40,6 +40,6 @@ The model has reached total accuracy of 89% after learning for 120 epochs.
 ### Testing or using the model
 
 After the model loads the weights it can estimate raw bands images of landsat 8 using ```model.estimate_raw_landsat(path)``` as demonstrated in test.py. \
-The raw landsat bands should be in one folder named as their originial _Landsat Product Identifier L2_ followed by the SR\_B<band\_number>.TIF (e.g. LC08\_L2SP\_196024\_20210330\_20210409\_02\_T1\_SR\_B4.TIF is band 4 of the landsat product LC08\_L2SP\_196024\_20210330\_20210409\_02\_T1) \
+The raw landsat bands should be in one folder named as their originial _Landsat Product Identifier L2_ followed by the SR\_B<band\_number>.TIF (e.g. LC08\_L2SP\_196024\_20210330\_20210409\_02\_T1\_SR\_B4.TIF is band 4 of the landsat product LC08\_L2SP\_196024\_20210330\_20210409\_02\_T1) 
 
-The result ```classified_landcover.tiff``` is saved as a geo-referenced 1 band GeoTiff in the same folder.
+The result ```classified_landcover.tiff``` is saved as a geo-referenced one-band GeoTiff in the same folder.
