@@ -10,10 +10,7 @@ from skimage.exposure import equalize_hist
 from os import walk
 import re
 
-REFLECTANCE_MAX_BAND = 65535
-PADDING_EDGE = 100
-LAND_COVER_FILE = "./CA_forest_VLCE_2015/CA_forest_VLCE_2015.tif"
-SUPPORTED_BANDS = [2, 3, 4, 5, 6, 7]
+from config import LAND_COVER_FILE, SUPPORTED_BANDS, REFLECTANCE_MAX_BAND, PADDING_EDGE
 
 
 def merge_reprojected_bands(datasets_folder):
@@ -156,3 +153,27 @@ def rotate_datasets(landsat_dataset_path, enhance_colors=False, show_preprocessi
                 ax[1][3].set_axis_off()
                 plt.show()
             return ls_cropped, lc_cropped
+
+
+def getMultiSpectral(landsat_dataset_path):
+    with rasterio.open(landsat_dataset_path) as l_sat:
+        bands = []
+        masks = []
+        metadata = l_sat.meta.copy()
+        metadata.update({'count': 1})
+        # collect and normalize spectral bands
+        for band_num in SUPPORTED_BANDS:
+            band = l_sat.read(band_num)
+            if band_num in [2, 3, 4]:
+                masks.append(band != 0)
+            band = band / REFLECTANCE_MAX_BAND
+            bands.append(band)
+
+        # stacking Multi-spectral image containing -> (Blue, Green, Red, NIR, SWIR 1, SWIR 2)
+        ls_original = np.array(bands).transpose([1, 2, 0])
+
+        # extract mask from the bands
+        mask = np.mean(np.array(masks).transpose([1, 2, 0]), axis=2)
+        mask[mask > 0] = 1
+        mask[mask <= 0] = 0
+    return ls_original, mask, metadata

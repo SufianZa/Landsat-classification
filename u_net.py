@@ -13,32 +13,11 @@ from tensorflow.python.keras.layers import Conv2DTranspose, Dropout
 from tensorflow.python.keras.optimizer_v2.adam import Adam
 from tensorflow.python.keras.optimizer_v2.gradient_descent import SGD
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
-from preprocessing.image_registration import rotate_datasets
+
+from config import selected_classes, colors, colors_legend
+from preprocessing.image_registration import rotate_datasets, getMultiSpectral
 from tensorflow.keras import backend as K
 
-original_classes = dict(no_change=0,
-                        water=20,
-                        snow_ice=31,
-                        rock_rubble=32,
-                        exposed_barren_land=33,
-                        bryoids=40,
-                        shrubland=50,
-                        wetland=80,
-                        wetlandtreed=81,
-                        herbs=100,
-                        coniferous=210,
-                        broadleaf=220,
-                        mixedwood=230)
-
-selected_classes = ['no_change', 'water', 'coniferous', 'herbs']
-if len(selected_classes) == 0:
-    selected_classes = list(original_classes.keys())
-model_classes = {c: idx for idx, c in enumerate(original_classes) if c in selected_classes}
-
-colors = [(0, 0, 0)] + list(plt.cm.get_cmap('Paired').colors)
-colors_legend = [patches.Patch(color=colors[i], label=c) for i, c in enumerate(original_classes) if
-                 c in selected_classes]
-colors = [colors[i] for i, c in enumerate(original_classes) if c in selected_classes]
 
 
 def dice_coef(y_true, y_pred, smooth=1):
@@ -48,6 +27,23 @@ def dice_coef(y_true, y_pred, smooth=1):
 
 def dice_coef_loss(y_true, y_pred):
     return 1 - dice_coef(y_true, y_pred)
+
+
+def getTeilsGenerator(w, h, window_size, trim, in_image):
+    stepSize = window_size - trim * 2
+    for y in range(0, h, stepSize):
+        for x in range(0, w, stepSize):
+            x_overflow = x + window_size
+            y_overflow = y + window_size
+            if x_overflow > w and y_overflow > h:
+                x_overflow = w - 1
+                y_overflow = h - 1
+            elif x_overflow > w:
+                x_overflow = w - 1
+            elif y_overflow > h:
+                y_overflow = h - 1
+            yield in_image[:, x:x_overflow, y:y_overflow, :]#, x, y, x_overflow, y_overflow
+
 
 
 class UNET:
@@ -210,7 +206,7 @@ class UNET:
             plt.legend(handles=colors_legend, borderaxespad=-15, fontsize='x-small')
             plt.show()
 
-    def estimate_raw_landsat(self, path: str, trim=20):
+    def estimate_raw_landsat(self, path: Path, trim=20):
         """
          Estimates the full map image by sliding a window over and
            trimming off sides from each side of 256*256 patch
@@ -230,39 +226,23 @@ class UNET:
             for i, band in enumerate(multi_image, start=2):
                 dst.write(band.read(1), i)
                 band.close()
-        input_map = rotate_datasets(Path(path, 'merged.tif'), label=False)
+        input_map, mask, metadata = getMultiSpectral(Path(path, 'merged.tif'))
         self.model.load_weights(self.weight_file)
         w, h, _ = input_map.shape
-        stepSize = self.window_size - trim * 2
         in_image = np.reshape(input_map, (1, input_map.shape[0], input_map.shape[1], input_map.shape[2]))
         res = np.zeros((input_map.shape[0], input_map.shape[1]))
-        for y in range(0, input_map.shape[1], stepSize):
-            for x in range(0, input_map.shape[0], stepSize):
-                x_overflow = x + self.window_size
-                y_overflow = y + self.window_size
-                if x_overflow > w and y_overflow > h:
-                    x_overflow = w - 1
-                    y_overflow = h - 1
-                elif x_overflow > w:
-                    x_overflow = w - 1
-                elif y_overflow > h:
-                    y_overflow = h - 1
-                window_data = in_image[:, x:x_overflow, y:y_overflow, :]
-                window = np.zeros((1, self.window_size, self.window_size, self.bands))
-                window[:, :window_data.shape[1], :window_data.shape[2], :] = window_data
-                output_all = self.model.predict(window, verbose=0)
-                output = output_all[:, :window_data.shape[1], :window_data.shape[2], :]
-                res[x + trim:x_overflow - trim,
-                y + trim:y_overflow - trim] = np.argmax(output.squeeze()[
-                                                        trim:window_data.shape[1] - trim,
-                                                        trim:window_data.shape[2] - trim],
-                                                        axis=2)
+        for window_data, x, y, x_overflow, y_overflow in getTeilsGenerator(w, h, self.window_size, trim, in_image):
+            window = np.zeros((1, self.window_size, self.window_size, self.bands))
+            window[:, :window_data.shape[1], :window_data.shape[2], :] = window_data
+            output = self.model.predict(window, verbose=0)[:, :window_data.shape[1], :window_data.shape[2], :]
+            res[x + trim:x_overflow - trim,
+            y + trim:y_overflow - trim] = np.argmax(output.squeeze()[
+                                                    trim:window_data.shape[1] - trim,
+                                                    trim:window_data.shape[2] - trim],
+                                                    axis=2)
         assert res.shape[0] == w and res.shape[1] == h
         print(res.shape[0], res.shape[1])
+        res *= mask
+        with rasterio.open(Path(path, 'classified_landcover.tif'), 'w', **metadata) as dst:
+            dst.write(res.astype(rasterio.uint8), 1)
 
-        plt.imshow(np.array([[colors[int(val)]] for val in res.reshape(-1)]).reshape((w, h, 3)))
-        plt.legend(handles=colors_legend, borderaxespad=-15, fontsize='x-small')
-        plt.show()
-
-        out_im = Image.fromarray(res)
-        return np.array(out_im)
