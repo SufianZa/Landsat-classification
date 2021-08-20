@@ -1,6 +1,6 @@
 # TB17-landsat ML model for land cover classification 
 
-An Instant Segmentation model to classify different landcover classes using raw satellite imagery.
+An Instance Segmentation model to classify different landcover classes using raw satellite imagery.
 
 
 ### Datasets
