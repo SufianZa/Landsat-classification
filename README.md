@@ -67,31 +67,38 @@ Use the following section to add the landsat prediction processor:
 
 ```yaml
 resources:
-    landsat-prediction:
-      type: process
-      processor:
-        name: landcover_prediction.LandcoverPredictionProcessor
+    landcover-prediction:
+        type: process
+        processor:
+            name: landsatpredictor.LandcoverPredictionProcessor
 ```
 
 ### Testing
 
 You can use the simple default configuration in `tests/config.yml` for local testing.
-It is recommended to install the latest pygeoapi version in your development venv:
 
-```shell
-pip install https://github.com/geopython/pygeoapi/archive/master.zip
-```
+1. It is recommended to install the latest pygeoapi version in your development venv:
 
-Start a pygeoapi instance using this configuration:
+   ```shell
+   pip install https://github.com/geopython/pygeoapi/archive/master.zip
+   ```
 
-```shell
-PYGEOAPI_CONFIG=./tests/config.yml pygeoapi serve
-```
+1. Afterwards, install this package as `editable`:
 
-Execute an example prediction:
+   ```shell
+   pip install --editable .
+   ```
 
-```shell
-curl -X POST "http://localhost:5000/processes/hello-world/execution" \
--H "Content-Type: application/json" \
--d "{\"mode\": \"async\", \"inputs\":{\"landsat-collection-id\": \"landsat8_c2_l2\", \"bbox\": \"-111.0,65.0,-110,64.0\"}}"
-```
+1. Start a pygeoapi instance using this configuration:
+
+   ```shell
+   PYGEOAPI_CONFIG=./tests/config.yml pygeoapi serve
+   ```
+
+1. Execute an example prediction:
+
+   ```shell
+   curl -X POST "http://localhost:5000/processes/landcover-prediction/execution" \
+   -H "Content-Type: application/json" \
+   -d "{\"mode\": \"async\", \"inputs\":{\"landsat-collection-id\": \"landsat8_c2_l2\", \"bbox\": \"-111.0,65.0,-110,64.0\"}}"****
+   ```

@@ -60,13 +60,7 @@ metadata:
         url: https://example.org/
 
 resources:
-
-    hello-world:
+    landcover-prediction:
         type: process
         processor:
-            name: HelloWorld
-
-    landsat-prediction:
-        type: process
-        processor:
-            name: LandcoverPrediction
+            name: landsatpredictor.LandcoverPredictionProcessor
