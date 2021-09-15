@@ -12,13 +12,13 @@
 # limitations under the License.
 #
 # =================================================================
+import os
 from pathlib import Path
 
+import requests
 from landsatxplore.api import API
 from landsatxplore.earthexplorer import EarthExplorer
-import os
 from tqdm import tqdm
-import requests
 
 # download land cover dataset
 land_cover_url = 'https://opendata.nfis.org/downloads/forest_change/CA_forest_VLCE_2015.zip'

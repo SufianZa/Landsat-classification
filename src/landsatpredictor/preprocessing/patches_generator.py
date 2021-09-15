@@ -12,10 +12,11 @@
 # limitations under the License.
 #
 # =================================================================
-from pathlib import Path
-from PIL import Image
 import os
+from pathlib import Path
+
 import numpy as np
+from PIL import Image
 from sklearn.model_selection import train_test_split
 
 original_classes = dict(no_change=0,

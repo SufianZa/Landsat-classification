@@ -12,19 +12,20 @@
 # limitations under the License.
 #
 # =================================================================
-import matplotlib.pyplot as plt
-from rasterio.windows import from_bounds
-import numpy as np
-import cv2 as cv
+import re
+from os import walk
 from pathlib import Path
+
+import cv2 as cv
+import matplotlib.pyplot as plt
+import numpy as np
 import rasterio
 from rasterio.enums import Resampling
 from rasterio.warp import calculate_default_transform, reproject
+from rasterio.windows import from_bounds
 from skimage.exposure import equalize_hist
-from os import walk
-import re
 
-from config import LAND_COVER_FILE, SUPPORTED_BANDS, REFLECTANCE_MAX_BAND, PADDING_EDGE
+from ..config import LAND_COVER_FILE, SUPPORTED_BANDS, REFLECTANCE_MAX_BAND, PADDING_EDGE
 
 
 def merge_reprojected_bands(datasets_folder):

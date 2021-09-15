@@ -13,9 +13,10 @@
 #
 # =================================================================
 from pathlib import Path
-from config import selected_classes, TRAIN_DATASETS, TEST_DATASETS
-from patches_generator import generate_patches
+
 from image_registration import merge_reprojected_bands, rotate_datasets
+from patches_generator import generate_patches
+from ..config import selected_classes, TRAIN_DATASETS, TEST_DATASETS
 
 # reproject each dataset then obtain a list of paths
 reprojected_train_datasets = merge_reprojected_bands(TRAIN_DATASETS)
