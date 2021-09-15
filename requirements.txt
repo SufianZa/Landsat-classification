@@ -4,6 +4,7 @@ opencv-python
 Pillow
 tensorflow
 pygeoapi
+landsatxplore
 scikit-image
 rasterio
 requests

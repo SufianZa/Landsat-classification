@@ -43,3 +43,55 @@ After the model loads the weights it can estimate raw bands images of landsat 8 
 The raw landsat bands should be in one folder named as their originial _Landsat Product Identifier L2_ followed by the SR\_B<band\_number>.TIF (e.g. LC08\_L2SP\_196024\_20210330\_20210409\_02\_T1\_SR\_B4.TIF is band 4 of the landsat product LC08\_L2SP\_196024\_20210330\_20210409\_02\_T1) 
 
 The result ```classified_landcover.tiff``` is saved as a geo-referenced one-band GeoTiff in the same folder.
+
+## OGC API Processes
+
+A pygeoapi processor is implemented in `api_processes/landcover_prediction.py`.
+
+We recommend using the asynchronous mode because of the runtime of the according prediction jobs.
+Hence, the pygeoapi configuration requires two adjustments.
+One to add the processor and another one for adding a job manager.
+Atm, we are using the provided TinyDB based one.
+
+First, we add the job manager:
+
+```yaml
+server:
+    manager:
+        name: TinyDB
+        connection: /tmp/pygeoapi-process-manager.db
+        output_dir: /tmp/
+```
+
+Use the following section to add the landsat prediction processor:
+
+```yaml
+resources:
+    landsat-prediction:
+      type: process
+      processor:
+        name: landcover_prediction.LandcoverPredictionProcessor
+```
+
+### Testing
+
+You can use the simple default configuration in `tests/config.yml` for local testing.
+It is recommended to install the latest pygeoapi version in your development venv:
+
+```shell
+pip install https://github.com/geopython/pygeoapi/archive/master.zip
+```
+
+Start a pygeoapi instance using this configuration:
+
+```shell
+PYGEOAPI_CONFIG=./tests/config.yml pygeoapi serve
+```
+
+Execute an example prediction:
+
+```shell
+curl -X POST "http://localhost:5000/processes/hello-world/execution" \
+-H "Content-Type: application/json" \
+-d "{\"mode\": \"async\", \"inputs\":{\"landsat-collection-id\": \"landsat8_c2_l2\", \"bbox\": \"-111.0,65.0,-110,64.0\"}}"
+```
