@@ -19,10 +19,25 @@ from pygeoapi.process.base import (BaseProcessor, ProcessorExecuteError)
 
 LOGGER = logging.getLogger(__name__)
 
-
-# Process inputs: http://docs.ogc.org/DRAFTS/18-062.html#sc_process_inputs
-# Bbox: http://docs.ogc.org/DRAFTS/18-062.html#bbox-schema
-
+#
+# LINKS
+#
+# Process inputs
+#   https://github.com/opengeospatial/ogcapi-processes/blob/master/core/examples/json/ProcessDescription.json#L14
+#   http://docs.ogc.org/DRAFTS/18-062.html#sc_process_inputs
+#   Bbox:
+#   http://docs.ogc.org/DRAFTS/18-062.html#bbox-schema
+#   https://github.com/opengeospatial/ogcapi-coverages#query-parameters-optional-conformance-classes
+#
+# Process outputs
+#   https://github.com/opengeospatial/ogcapi-processes/blob/master/core/examples/json/ProcessDescription.json#L199
+#   Image
+#   https://github.com/opengeospatial/ogcapi-processes/blob/master/core/examples/json/ProcessDescription.json#L318-L325
+#
+# Implementation
+# Async processing pygeoapi:
+#       https://docs.pygeoapi.io/en/latest/data-publishing/ogcapi-processes.html#asynchronous-support
+#
 PROCESS_METADATA = {
     'version': '0.1.0',
     'id': 'landcover-prediction',
@@ -33,13 +48,13 @@ PROCESS_METADATA = {
         'type': 'text/html',
         'rel': 'canonical',
         'title': 'information',
-        'href': 'https://github.com/geopython/pygeoapi/blob/master/pygeoapi/process/hello_world.py',
+        'href': 'https://github.com/52North/Landsat-classification/blob/main/README.md',
         'hreflang': 'en-US'
     }],
     'inputs': {
         'landsat-collection-id': {
             'title': 'Name',
-            'description': 'Landsat coverage collection id',
+            'description': 'id of the OGC API coverages collection providing the landsat data',
             'schema': {
                 'type': 'string'
             },
@@ -73,7 +88,7 @@ PROCESS_METADATA = {
     'example': {
         "inputs": {
             "landsat-collection-id": "landsat8_c2_l2",
-            "bbox": "1,2,1,2"
+            "bbox": "160.6,-55.95,-170,-25.89"
         }
     }
 }
