@@ -19,7 +19,10 @@ import os
 import pickle
 
 import requests
+from landsatpredictor.u_net import UNET
 from pygeoapi.process.base import (BaseProcessor, ProcessorExecuteError)
+
+BASE_URL = "https://17.testbed.dev.52north.org/geodatacube/collections/{}/coverage?f=NetCDF&bbox={}"
 
 MODEL_PICKLE = 'model.pickle'
 
@@ -159,6 +162,11 @@ class LandcoverPredictionProcessor(BaseProcessor):
         # 2) Get array to use for the prediction with the correct bbox
         #    a) either using open data cube directly or
         #    b) making a coverage request (may be slower but enables usage of external collections)
+        request = BASE_URL.format(collection_id, bbox)
+        LOGGER.debug("Requesting coverage from '{}'".format(request))
+        response = requests.get(request)
+        LOGGER.debug("Received response:\n{}".format(response.text()))
+
         # 3) If necessary adapt this function https://github.com/SufianZa/Landsat-classification/blob/main/u_net.py#L208
         #       to use, e.g., array input instead of path
         # 4) Make the prediction using this method https://github.com/SufianZa/Landsat-classification/blob/main/test.py
