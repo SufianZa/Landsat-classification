@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 import requests
 from landsatpredictor.u_net import UNET
@@ -158,6 +159,12 @@ class LandcoverPredictionProcessor(BaseProcessor):
         #       to use, e.g., array input instead of path
         # 4) Make the prediction using this method https://github.com/SufianZa/Landsat-classification/blob/main/test.py
         # 5) Correctly encode the result of 4) as process output (geotiff)
+
+        i = 1
+        while i < 31:
+            LOGGER.debug("sleep #{}".format(i))
+            time.sleep(1)
+            i = i + 1
 
         outputs = [{
             'id': 'echo',
