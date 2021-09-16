@@ -151,8 +151,8 @@ class LandcoverPredictionProcessor(BaseProcessor):
         #    b) making a coverage request (may be slower but enables usage of external collections)
         request = BASE_URL.format(collection_id, bbox)
         LOGGER.debug("Requesting coverage from '{}'".format(request))
-        response = requests.get(request)
-        LOGGER.debug("Received response:\n{}".format(response.text()))
+        response = requests.get(request, verify=False)
+        LOGGER.debug("Received response:\n{}".format(response))
 
         # 3) If necessary adapt this function https://github.com/SufianZa/Landsat-classification/blob/main/u_net.py#L208
         #       to use, e.g., array input instead of path
