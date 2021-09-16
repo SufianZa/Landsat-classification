@@ -109,25 +109,14 @@ class LandcoverPredictionProcessor(BaseProcessor):
         super().__init__(processor_def, PROCESS_METADATA)
 
     def execute(self, data):
+        # Workflow:
+        bbox, collection_id = self.parse_inputs(data)
 
-        mimetype = 'application/json'
-        collection_id = data.get('landsat-collection-id', None)
-        bbox = data.get('bbox', '')
-
-        if collection_id is None:
-            raise ProcessorExecuteError('Cannot process without a collection_id')
-        if bbox is None:
-            raise ProcessorExecuteError('Cannot process without a bbox')
-
-        LOGGER.debug('Process inputs:\n - collection_id: {}\n - bbox: {}'.format(collection_id, bbox))
-        LOGGER.debug(type(bbox))
-
-        # Implementation steps:
-        # 1) Parse process inputs
         # 2) Get array to use for the prediction with the correct bbox
         #    a) either using open data cube directly or
         #    b) making a coverage request (may be slower but enables usage of external collections)
-        # 3) If necessary adapt this function https://github.com/SufianZa/Landsat-classification/blob/main/u_net.py#L208 to use, e.g., array input instead of path
+        # 3) If necessary adapt this function https://github.com/SufianZa/Landsat-classification/blob/main/u_net.py#L208
+        #       to use, e.g., array input instead of path
         # 4) Make the prediction using this method https://github.com/SufianZa/Landsat-classification/blob/main/test.py
         # 5) Correctly encode the result of 4) as process output (geotiff)
 
@@ -136,8 +125,28 @@ class LandcoverPredictionProcessor(BaseProcessor):
             'collection_id': collection_id,
             'bbox': bbox
         }]
-
+        mimetype = 'application/json'
         return mimetype, outputs
+
+    def parse_inputs(self, data):
+        # 1) Parse process inputs
+        collection_id = data.get('landsat-collection-id', None)
+        bbox = data.get('bbox', None)
+        if collection_id is None:
+            raise ProcessorExecuteError('Cannot process without a collection_id')
+        if bbox is None:
+            raise ProcessorExecuteError('Cannot process without a bbox')
+        LOGGER.debug('Process inputs:\n - collection_id: {}\n - bbox: {}'.format(collection_id, bbox))
+        LOGGER.debug(type(bbox))
+        bbox_coords = [s.strip() for s in bbox.split(",")]
+        if len(bbox_coords) != 4:
+            raise ProcessorExecuteError("Received bbox '{}' could not be split into four (4) elements by ','."
+                                        .format(bbox))
+        bbox_float_coords = list(map(float, bbox_coords))
+        if not all(isinstance(x, float) for x in bbox_float_coords):
+            raise ProcessorExecuteError("Received bbox '{}' could not be converted completly to integer."
+                                        .format(bbox))
+        return bbox, collection_id
 
     def __repr__(self):
         return '<LandcoverPredictionProcessor> {}'.format(self.name)
