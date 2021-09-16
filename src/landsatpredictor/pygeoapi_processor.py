@@ -12,10 +12,16 @@
 # limitations under the License.
 #
 # =================================================================
+from __future__ import annotations
 
 import logging
+import os
+import pickle
 
+import requests
 from pygeoapi.process.base import (BaseProcessor, ProcessorExecuteError)
+
+MODEL_PICKLE = 'model.pickle'
 
 LOGGER = logging.getLogger(__name__)
 
@@ -94,6 +100,43 @@ PROCESS_METADATA = {
 }
 
 
+class ModelCache:
+    """
+    Stores not changing trained model to be used by each instance of the LandcoverPredictionProcessor.
+    Implementation follows:
+
+        https://python-patterns.guide/gang-of-four/singleton/
+    """
+
+    _instance = None
+
+    def __init__(self):
+        raise RuntimeError('Call instance() instead')
+
+    @classmethod
+    def instance(cls, cache_pickle: str = MODEL_PICKLE) -> ModelCache:
+        LOGGER.debug("instance() called")
+        #
+        #   Init model and its data as global pickled singleton
+        #
+        if cls._instance is None:
+            LOGGER.debug("Creating instance of class '{}'...".format(UNET))
+            if os.path.exists(cache_pickle) and os.access(cache_pickle, mode=os.R_OK | os.W_OK):
+                # 1 try to load pickle from previous runs
+                LOGGER.debug('...from pickle...')
+                LandcoverPredictionProcessor.model_instance = pickle.load(open(cache_pickle, 'rb'))
+                LOGGER.debug('...DONE')
+            else:
+                # 2 load and init model manually
+                LOGGER.debug('...from model...')
+                cls._instance = UNET()
+                pickle.dump(cls._instance, open(cache_pickle, 'wb'))
+                LOGGER.debug('...DONE.')
+        else:
+            LOGGER.debug("Instance of class '{}' already existing".format(UNET))
+        return cls._instance
+
+
 class LandcoverPredictionProcessor(BaseProcessor):
     """Landcover Prediction Processor"""
 
@@ -107,6 +150,7 @@ class LandcoverPredictionProcessor(BaseProcessor):
         """
 
         super().__init__(processor_def, PROCESS_METADATA)
+        self.model = ModelCache.instance()
 
     def execute(self, data):
         # Workflow:
