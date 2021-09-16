@@ -88,7 +88,7 @@ PROCESS_METADATA = {
     'example': {
         "inputs": {
             "landsat-collection-id": "landsat8_c2_l2",
-            "bbox": "-111.0,65.0,-110,64.0"
+            "bbox": "-111.0,64.99,-110.99,65.0"
         }
     }
 }
