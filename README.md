@@ -100,5 +100,5 @@ You can use the simple default configuration in `tests/config.yml` for local tes
    ```shell
    curl -X POST "http://localhost:5000/processes/landcover-prediction/execution" \
    -H "Content-Type: application/json" \
-   -d "{\"mode\": \"async\", \"inputs\":{\"landsat-collection-id\": \"landsat8_c2_l2\", \"bbox\": \"-111.0,65.0,-110,64.0\"}}"****
+   -d "{\"mode\": \"async\", \"inputs\":{\"landsat-collection-id\": \"landsat8_c2_l2\", \"bbox\": \"-111.0,64.99,-110.99,65.0\"}}"
    ```
