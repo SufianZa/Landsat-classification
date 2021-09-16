@@ -193,7 +193,9 @@ class LandcoverPredictionProcessor(BaseProcessor):
             raise ProcessorExecuteError('Cannot process without a collection_id')
         if bbox is None:
             raise ProcessorExecuteError('Cannot process without a bbox')
-        LOGGER.debug('Process inputs:\n - collection_id: {}\n - bbox: {}'.format(collection_id, bbox))
+        LOGGER.debug('Process inputs')
+        LOGGER.debug('collection_id: {}'.format(collection_id))
+        LOGGER.debug('bbox         : {}'.format(bbox))
         LOGGER.debug(type(bbox))
         bbox_coords = [s.strip() for s in bbox.split(",")]
         if len(bbox_coords) != 4:
