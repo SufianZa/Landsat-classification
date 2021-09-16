@@ -69,7 +69,7 @@ class UNET:
         self.model.compile(loss=dice_coef_loss, optimizer=Adam(learning_rate=0.001),  # Adam(learning_rate=0.001),
                            metrics=['accuracy'])
         self.model = load_model(self.weight_file, custom_objects={'dice_coef_loss': dice_coef_loss})
-        # self.model.load_weights(self.weight_file)
+        self.model.load_weights(self.weight_file)
 
     def init_network(self, input_size):
         """
@@ -239,7 +239,7 @@ class UNET:
                 dst.write(band.read(1), i)
                 band.close()
         input_map, mask, metadata = getMultiSpectral(Path(path, 'merged.tif'))
-        self.model.load_weights(self.weight_file)
+        # self.model.load_weights(self.weight_file)
         w, h, _ = input_map.shape
         in_image = np.reshape(input_map, (1, input_map.shape[0], input_map.shape[1], input_map.shape[2]))
         res = np.zeros((input_map.shape[0], input_map.shape[1]))
