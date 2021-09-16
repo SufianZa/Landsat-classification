@@ -160,6 +160,11 @@ class LandcoverPredictionProcessor(BaseProcessor):
         LOGGER.debug("Requesting coverage from '{}'".format(request))
         response = requests.get(request, verify=False)
         LOGGER.debug("Received response:\n{}".format(response))
+        if response.status_code < 200 or response.status_code > 300:
+            msg = 'Requesting input data failed: {}'.format(request)
+            LOGGER.error(msg)
+            raise ProcessorExecuteError(msg)
+        # write response to temporary file used as input for prediction/estimation function
 
         # 3) If necessary adapt this function https://github.com/SufianZa/Landsat-classification/blob/main/u_net.py#L208
         #       to use, e.g., array input instead of path
