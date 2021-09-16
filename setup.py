@@ -31,12 +31,6 @@ setup(
     name="landsatpredictor",
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
-    package_data={
-        'landsatpredictor': [
-            'data/3_class_best_weight.hdf5'
-        ]
-    },
-    include_package_data=True,
     version="0.1.0",
     description="pygeoapi processor plugin for Landsat land cover classification",
     long_description="landsat ML model for land cover classification",
