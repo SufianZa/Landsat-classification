@@ -59,12 +59,13 @@ def getTeilsGenerator(w, h, window_size, trim, in_image):
 
 
 class UNET:
-    def __init__(self, batch_size=64, epochs=30, window_size=256):
+    def __init__(self, weight_file: str = str(Path('data/3_class_best_weight.hdf5')), batch_size: int = 64,
+                 epochs: int = 30, window_size: int = 256):
         self.bands = 6
         self.batch_size = batch_size
         self.window_size = window_size
         self.epochs = epochs
-        self.weight_file = str(Path('3_class_best_weight.hdf5'))
+        self.weight_file = weight_file
         self.model = self.init_network((window_size, window_size, self.bands))
         self.model.compile(loss=dice_coef_loss, optimizer=Adam(learning_rate=0.001),  # Adam(learning_rate=0.001),
                            metrics=['accuracy'])
