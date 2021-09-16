@@ -53,8 +53,14 @@ PROCESS_METADATA = {
     'links': [{
         'type': 'text/html',
         'rel': 'canonical',
-        'title': 'information',
+        'title': 'Processor Repository',
         'href': 'https://github.com/52North/Landsat-classification/blob/main/README.md',
+        'hreflang': 'en-US'
+    },{
+        'type': 'text/html',
+        'rel': 'canonical',
+        'title': 'Landsat 8 Collection 2 Level 2',
+        'href': 'https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2-level-2-science-products',
         'hreflang': 'en-US'
     }],
     'inputs': {
