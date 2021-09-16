@@ -20,12 +20,12 @@ import numpy as np
 import rasterio
 from PIL import Image
 from matplotlib import pyplot as plt
-from tensorflow.keras import backend as K
-from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D
-from tensorflow.keras.models import Model, load_model
+from tensorflow.python.keras import backend as K
 from tensorflow.python.keras.backend import concatenate
 from tensorflow.python.keras.callbacks import ModelCheckpoint, EarlyStopping
 from tensorflow.python.keras.layers import Conv2DTranspose, Dropout
+from tensorflow.python.keras.layers import Input, Conv2D, MaxPooling2D
+from tensorflow.python.keras.models import Model, load_model
 from tensorflow.python.keras.optimizer_v2.adam import Adam
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
