@@ -50,6 +50,7 @@ PROCESS_METADATA = {
     'title': 'Landcover prediction',
     'description': 'Landcover prediction with landsat',
     'keywords': ['landcover prediction', 'landsat', 'tb-17'],
+    'jobControlOptions': 'async-execute',
     'links': [{
         'type': 'text/html',
         'rel': 'canonical',
