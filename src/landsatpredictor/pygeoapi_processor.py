@@ -15,16 +15,12 @@
 from __future__ import annotations
 
 import logging
-import os
-import pickle
 
 import requests
 from landsatpredictor.u_net import UNET
 from pygeoapi.process.base import (BaseProcessor, ProcessorExecuteError)
 
 BASE_URL = "https://17.testbed.dev.52north.org/geodatacube/collections/{}/coverage?f=NetCDF&bbox={}"
-
-MODEL_PICKLE = 'model.pickle'
 
 LOGGER = logging.getLogger(__name__)
 
@@ -117,24 +113,15 @@ class ModelCache:
         raise RuntimeError('Call instance() instead')
 
     @classmethod
-    def instance(cls, cache_pickle: str = MODEL_PICKLE) -> ModelCache:
+    def instance(cls) -> ModelCache:
         LOGGER.debug("instance() called")
         #
         #   Init model and its data as global pickled singleton
         #
         if cls._instance is None:
             LOGGER.debug("Creating instance of class '{}'...".format(UNET))
-            if os.path.exists(cache_pickle) and os.access(cache_pickle, mode=os.R_OK | os.W_OK):
-                # 1 try to load pickle from previous runs
-                LOGGER.debug('...from pickle...')
-                LandcoverPredictionProcessor.model_instance = pickle.load(open(cache_pickle, 'rb'))
-                LOGGER.debug('...DONE')
-            else:
-                # 2 load and init model manually
-                LOGGER.debug('...from model...')
-                cls._instance = UNET()
-                pickle.dump(cls._instance, open(cache_pickle, 'wb'))
-                LOGGER.debug('...DONE.')
+            cls._instance = UNET()
+            LOGGER.debug('...DONE.')
         else:
             LOGGER.debug("Instance of class '{}' already existing".format(UNET))
         return cls._instance
