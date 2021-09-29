@@ -18,6 +18,7 @@ import json
 import logging
 import time
 from typing import Tuple, Any
+from urllib.error import HTTPError
 
 import requests
 from landsatpredictor.u_net import UNET
@@ -161,9 +162,14 @@ class LandcoverPredictionProcessor(BaseProcessor):
         #    b) making a coverage request (may be slower but enables usage of external collections)
         request = BASE_URL.format(collection_id, bbox)
         LOGGER.debug("Requesting coverage from '{}'".format(request))
-        response = requests.get(request, verify=False)
-        LOGGER.debug("Received response:\n{}".format(response))
-        if response.status_code < 200 or response.status_code > 300:
+        try:
+            with requests.get(request, verify=False, stream=True) as request:
+                request.raise_for_status()
+                # ToDo use correct temp file and use tmp file name as input for unet.estimate_raw
+                with open('/tmp/temp.geotiff', 'wb') as file:
+                    for chunk in request.iter_content(chunk_size=8192):
+                        file.write(chunk)
+        except HTTPError as err:
             msg = 'Requesting input data failed: {}'.format(request)
             LOGGER.error(msg)
             raise ProcessorExecuteError(msg)
