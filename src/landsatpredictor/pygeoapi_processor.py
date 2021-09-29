@@ -14,8 +14,10 @@
 # =================================================================
 from __future__ import annotations
 
+import json
 import logging
 import time
+from typing import Tuple, Any
 
 import requests
 from landsatpredictor.u_net import UNET
@@ -150,7 +152,7 @@ class LandcoverPredictionProcessor(BaseProcessor):
         super().__init__(processor_def, PROCESS_METADATA)
         self.model = ModelCache.instance()
 
-    def execute(self, data):
+    def execute(self, data: dict) -> Tuple[str, Any]:
         # Workflow:
         bbox, collection_id = self.parse_inputs(data)
 
@@ -187,6 +189,7 @@ class LandcoverPredictionProcessor(BaseProcessor):
         return mimetype, outputs
 
     def parse_inputs(self, data):
+        LOGGER.debug("RAW Inputs:\n{}".format(json.dumps(data, indent=4)))
         # 1) Parse process inputs
         collection_id = data.get('landsat-collection-id', None)
         bbox = data.get('bbox', None)
@@ -194,10 +197,9 @@ class LandcoverPredictionProcessor(BaseProcessor):
             raise ProcessorExecuteError('Cannot process without a collection_id')
         if bbox is None:
             raise ProcessorExecuteError('Cannot process without a bbox')
-        LOGGER.debug('Process inputs')
+        LOGGER.debug('Parsed Process inputs')
         LOGGER.debug('collection_id: {}'.format(collection_id))
         LOGGER.debug('bbox         : {}'.format(bbox))
-        LOGGER.debug(type(bbox))
         bbox_coords = [s.strip() for s in bbox.split(",")]
         if len(bbox_coords) != 4:
             raise ProcessorExecuteError("Received bbox '{}' could not be split into four (4) elements by ','."
