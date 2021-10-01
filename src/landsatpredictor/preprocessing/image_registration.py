@@ -25,7 +25,7 @@ from rasterio.warp import calculate_default_transform, reproject
 from rasterio.windows import from_bounds
 from skimage.exposure import equalize_hist
 
-from ..config import LAND_COVER_FILE, SUPPORTED_BANDS, REFLECTANCE_MAX_BAND, PADDING_EDGE
+from ..config import LAND_COVER_FILE, SUPPORTED_BANDS, LANDSAT8_REFLECTANCE_BAND_MAX_VALUE, PADDING_EDGE
 
 
 def merge_reprojected_bands(datasets_folder):
@@ -79,7 +79,7 @@ def rotate_datasets(landsat_dataset_path, enhance_colors=False, show_preprocessi
             band = l_sat.read(band_num)
             if band_num in [2, 3, 4]:
                 masks.append(band != 0)
-            band = band / REFLECTANCE_MAX_BAND
+            band = band / LANDSAT8_REFLECTANCE_BAND_MAX_VALUE
             bands.append(band)
 
         # stacking Multi-spectral image containing -> (Blue, Green, Red, NIR, SWIR 1, SWIR 2)
@@ -175,13 +175,14 @@ def get_multi_spectral(landsat_dataset_path):
         bands = []
         masks = []
         metadata = l_sat.meta.copy()
+        # ToDo why do we set the band count to 1?
         metadata.update({'count': 1})
         # collect and normalize spectral bands
         for band_num in SUPPORTED_BANDS:
             band = l_sat.read(band_num)
             if band_num in [2, 3, 4]:
                 masks.append(band != 0)
-            band = band / REFLECTANCE_MAX_BAND
+            band = band / LANDSAT8_REFLECTANCE_BAND_MAX_VALUE
             bands.append(band)
 
         # stacking Multi-spectral image containing -> (Blue, Green, Red, NIR, SWIR 1, SWIR 2)

@@ -40,7 +40,13 @@ colors_legend = [patches.Patch(color=colors[i], label=c) for i, c in enumerate(o
                  c in selected_classes]
 colors = [colors[i] for i, c in enumerate(original_classes) if c in selected_classes]
 
-REFLECTANCE_MAX_BAND = 65535
+LANDSAT8_REFLECTANCE_BAND_MAX_VALUE = 65455
+"""
+Max value for Landsat 8 reflectance bands.
+
+See https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2-level-2-science-products
+"""
+
 PADDING_EDGE = 100
 
 # folder s
