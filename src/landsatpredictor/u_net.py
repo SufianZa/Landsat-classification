@@ -30,7 +30,7 @@ from tensorflow.python.keras.optimizer_v2.adam import Adam
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
 from .config import selected_classes, colors, colors_legend
-from .preprocessing.image_registration import getMultiSpectral
+from .preprocessing.image_registration import get_multi_spectral
 
 
 def dice_coef(y_true, y_pred, smooth=1):
@@ -231,15 +231,15 @@ class UNET:
            The trimming is used to avoid creases and artifacts since patch-wise prediction
            has no knowledge of nearby structures from the next patch.
         """
-        multi_image = [rasterio.open(band_path) for band_path in list(Path(path).glob('*SR_B[2-7].TIF'))]
-        profile = multi_image[0].meta.copy()
-        profile.update(count=7)
-        with rasterio.open(Path(path, '%s.tif' % 'merged'), 'w',
-                           **profile) as dst:
-            for i, band in enumerate(multi_image, start=2):
-                dst.write(band.read(1), i)
-                band.close()
-        input_map, mask, metadata = getMultiSpectral(Path(path, 'merged.tif'))
+        # multi_image = [rasterio.open(band_path) for band_path in list(Path(path).glob('*SR_B[2-7].TIF'))]
+        # profile = multi_image[0].meta.copy()
+        # profile.update(count=7)
+        # with rasterio.open(Path(path, '%s.tif' % 'merged'), 'w',
+        #                    **profile) as dst:
+        #     for i, band in enumerate(multi_image, start=2):
+        #         dst.write(band.read(1), i)
+        #         band.close()
+        input_map, mask, metadata = get_multi_spectral(Path(path))
         # self.model.load_weights(self.weight_file)
         w, h, _ = input_map.shape
         in_image = np.reshape(input_map, (1, input_map.shape[0], input_map.shape[1], input_map.shape[2]))

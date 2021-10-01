@@ -170,7 +170,7 @@ def rotate_datasets(landsat_dataset_path, enhance_colors=False, show_preprocessi
             return ls_cropped, lc_cropped
 
 
-def getMultiSpectral(landsat_dataset_path):
+def get_multi_spectral(landsat_dataset_path):
     with rasterio.open(landsat_dataset_path) as l_sat:
         bands = []
         masks = []

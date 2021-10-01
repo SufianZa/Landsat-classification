@@ -179,17 +179,13 @@ class LandcoverPredictionProcessor(BaseProcessor):
         #       to use, e.g., array input instead of path
         # 4) Make the prediction using this method https://github.com/SufianZa/Landsat-classification/blob/main/test.py
         # 5) Correctly encode the result of 4) as process output (geotiff)
-
-        i = 1
-        while i < 31:
-            LOGGER.debug("sleep #{}".format(i))
-            time.sleep(1)
-            i = i + 1
+        self.model.estimate_raw_landsat(path=tmp_file, trim=20)
 
         outputs = [{
             'id': 'echo',
             'collection_id': collection_id,
-            'bbox': bbox
+            'bbox': bbox,
+            'path': tmp_file + 'classified_landcover.tif'
         }]
         mimetype = 'application/json'
         return mimetype, outputs
