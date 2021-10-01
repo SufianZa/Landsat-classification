@@ -25,7 +25,7 @@ from rasterio.warp import calculate_default_transform, reproject
 from rasterio.windows import from_bounds
 from skimage.exposure import equalize_hist
 
-from ..config import LAND_COVER_FILE, REQUIRED_LANDSAT8_BANDS, LANDSAT8_REFLECTANCE_BAND_MAX_VALUE, PADDING_EDGE
+from ..config import LAND_COVER_FILE, REQUIRED_LANDSAT8_BAND_INDICES, LANDSAT8_REFLECTANCE_BAND_MAX_VALUE, PADDING_EDGE
 
 
 def merge_reprojected_bands(datasets_folder):
@@ -56,7 +56,7 @@ def merge_reprojected_bands(datasets_folder):
             })
             with rasterio.open(Path(datasets_folder, '%s.tif' % dataset), 'w', **kwargs) as dst:
                 print('Reprojecting bands of %s' % dataset)
-                for i, b in enumerate(REQUIRED_LANDSAT8_BANDS, start=1):
+                for i, b in enumerate(REQUIRED_LANDSAT8_BAND_INDICES, start=1):
                     with rasterio.open(Path(files + '%d' % b).with_suffix('.TIF')) as band:
                         reproject(
                             source=rasterio.band(band, 1),
@@ -75,7 +75,7 @@ def rotate_datasets(landsat_dataset_path, enhance_colors=False, show_preprocessi
         bands = []
         masks = []
         # collect and normalize spectral bands
-        for band_num in REQUIRED_LANDSAT8_BANDS:
+        for band_num in REQUIRED_LANDSAT8_BAND_INDICES:
             band = l_sat.read(band_num)
             if band_num in [2, 3, 4]:
                 masks.append(band != 0)
@@ -178,8 +178,8 @@ def get_multi_spectral(landsat_dataset_path):
         # ToDo why do we set the band count to 1?
         metadata.update({'count': 1})
         # collect and normalize spectral bands
-        for band_num in REQUIRED_LANDSAT8_BANDS:
             band = l_sat.read(band_num)
+        for band_num in REQUIRED_LANDSAT8_BAND_INDICES:
             if band_num in [2, 3, 4]:
                 masks.append(band != 0)
             band = band / LANDSAT8_REFLECTANCE_BAND_MAX_VALUE

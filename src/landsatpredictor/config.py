@@ -54,7 +54,7 @@ LAND_COVER_FILE = "./CA_forest_VLCE_2015/CA_forest_VLCE_2015.tif"
 TRAIN_DATASETS = 'train'
 TEST_DATASETS = 'test'
 
-REQUIRED_LANDSAT8_BANDS = [2, 3, 4, 5, 6, 7]
+REQUIRED_LANDSAT8_BAND_INDICES = [2, 3, 4, 5, 6, 7]
 """
 Landsat 8 Level 2 bands for the prediction:
 B2 -> blue
