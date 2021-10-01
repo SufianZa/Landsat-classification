@@ -42,10 +42,10 @@ def dice_coef_loss(y_true, y_pred):
     return 1 - dice_coef(y_true, y_pred)
 
 
-def getTeilsGenerator(w, h, window_size, trim, in_image):
-    stepSize = window_size - trim * 2
-    for y in range(0, h, stepSize):
-        for x in range(0, w, stepSize):
+def get_tiles_generator(w, h, window_size, trim, in_image):
+    step_size = window_size - trim * 2
+    for y in range(0, h, step_size):
+        for x in range(0, w, step_size):
             x_overflow = x + window_size
             y_overflow = y + window_size
             if x_overflow > w and y_overflow > h:
@@ -244,7 +244,7 @@ class UNET:
         w, h, _ = input_map.shape
         in_image = np.reshape(input_map, (1, input_map.shape[0], input_map.shape[1], input_map.shape[2]))
         res = np.zeros((input_map.shape[0], input_map.shape[1]))
-        for window_data, x, y, x_overflow, y_overflow in getTeilsGenerator(w, h, self.window_size, trim, in_image):
+        for window_data, x, y, x_overflow, y_overflow in get_tiles_generator(w, h, self.window_size, trim, in_image):
             window = np.zeros((1, self.window_size, self.window_size, self.bands))
             window[:, :window_data.shape[1], :window_data.shape[2], :] = window_data
             output = self.model.predict(window, verbose=0)[:, :window_data.shape[1], :window_data.shape[2], :]
