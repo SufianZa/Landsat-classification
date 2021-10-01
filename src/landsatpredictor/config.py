@@ -54,4 +54,19 @@ LAND_COVER_FILE = "./CA_forest_VLCE_2015/CA_forest_VLCE_2015.tif"
 TRAIN_DATASETS = 'train'
 TEST_DATASETS = 'test'
 
-SUPPORTED_BANDS = [2, 3, 4, 5, 6, 7]
+REQUIRED_LANDSAT8_BANDS = [2, 3, 4, 5, 6, 7]
+"""
+Landsat 8 Level 2 bands for the prediction:
+B2 -> blue
+B3 -> green
+B4 -> red
+B5 -> near infrared
+B6 -> Short Wave Infrared 1
+B7 -> Short Wave Infrared 2
+
+Definition
+See https://www.usgs.gov/faqs/what-are-band-designations-landsat-satellites
+
+Usage
+See https://www.usgs.gov/media/images/common-landsat-band-rgb-composites
+"""
