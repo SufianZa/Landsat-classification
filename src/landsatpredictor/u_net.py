@@ -239,23 +239,26 @@ class UNET:
         #     for i, band in enumerate(multi_image, start=2):
         #         dst.write(band.read(1), i)
         #         band.close()
-        input_map, mask, metadata = get_multi_spectral(Path(path))
+        input_landsat_bands_normalized, visual_light_reflectance_mask, metadata = get_multi_spectral(Path(path))
         # self.model.load_weights(self.weight_file)
-        w, h, _ = input_map.shape
-        in_image = np.reshape(input_map, (1, input_map.shape[0], input_map.shape[1], input_map.shape[2]))
-        res = np.zeros((input_map.shape[0], input_map.shape[1]))
-        for window_data, x, y, x_overflow, y_overflow in get_tiles_generator(w, h, self.window_size, trim, in_image):
+        input_width, input_height, input_band_count = input_landsat_bands_normalized.shape
+        # ToDo this might break with the changed indices between coverages and landsat
+        in_image = np.reshape(input_landsat_bands_normalized, (1, input_width, input_height, input_band_count))
+        result = np.zeros((input_width, input_height))
+        for window_data, x, y, x_overflow, y_overflow in get_tiles_generator(input_width, input_height, self.window_size, trim, in_image):
             window = np.zeros((1, self.window_size, self.window_size, self.bands))
             window[:, :window_data.shape[1], :window_data.shape[2], :] = window_data
             output = self.model.predict(window, verbose=0)[:, :window_data.shape[1], :window_data.shape[2], :]
-            res[x + trim:x_overflow - trim,
-            y + trim:y_overflow - trim] = np.argmax(output.squeeze()[
+            result[x + trim:x_overflow - trim,
+                   y + trim:y_overflow - trim] = np.argmax(output.squeeze()[
                                                     trim:window_data.shape[1] - trim,
                                                     trim:window_data.shape[2] - trim],
                                                     axis=2)
-        assert res.shape[0] == w and res.shape[1] == h
-        print(res.shape[0], res.shape[1])
-        res *= mask
+        assert result.shape[0] == input_width and result.shape[1] == input_height
+        # ToDo change to log statement
+        print(result.shape[0], result.shape[1])
+        # skip all pixels without visual light reflectance in landsat scene
+        result *= visual_light_reflectance_mask
         with rasterio.open(Path(path, 'classified_landcover.tif'), 'w', **metadata) as dst:
-            dst.write(res.astype(rasterio.uint8), 1)
+            dst.write(result.astype(rasterio.uint8), 1)
 

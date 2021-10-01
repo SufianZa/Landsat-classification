@@ -171,25 +171,30 @@ def rotate_datasets(landsat_dataset_path, enhance_colors=False, show_preprocessi
 
 
 def get_multi_spectral(landsat_dataset_path):
-    with rasterio.open(landsat_dataset_path) as l_sat:
+    with rasterio.open(landsat_dataset_path) as dataset:
         bands = []
         masks = []
-        metadata = l_sat.meta.copy()
+        metadata = dataset.meta.copy()
         # ToDo why do we set the band count to 1?
+        # Because it is used for the final result that contains only one band -> should be moved to a better location
         metadata.update({'count': 1})
         # collect and normalize spectral bands
-            band = l_sat.read(band_num)
         for band_num in REQUIRED_LANDSAT8_BAND_INDICES:
+            band = dataset.read(band_num)
+            # for visual light bands (landsat 8 bands: 2 -> blue, 3 -> green, 4 -> red
+            # for coverages result: 1 -> blue, 2 -> green, 3 -> red
             if band_num in [2, 3, 4]:
+                # add binary no data mask
                 masks.append(band != 0)
+            # normalize band values to 0..1
             band = band / LANDSAT8_REFLECTANCE_BAND_MAX_VALUE
             bands.append(band)
 
         # stacking Multi-spectral image containing -> (Blue, Green, Red, NIR, SWIR 1, SWIR 2)
-        ls_original = np.array(bands).transpose([1, 2, 0])
+        landsat_bands_normalized = np.array(bands).transpose([1, 2, 0])
 
-        # extract mask from the bands
+        # combine visual reflectance masks: one band with reflectance per pixel is enough for true
         mask = np.mean(np.array(masks).transpose([1, 2, 0]), axis=2)
         mask[mask > 0] = 1
         mask[mask <= 0] = 0
-    return ls_original, mask, metadata
+    return landsat_bands_normalized, mask, metadata
