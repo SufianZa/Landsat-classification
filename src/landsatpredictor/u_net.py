@@ -259,6 +259,6 @@ class UNET:
         print(result.shape[0], result.shape[1])
         # skip all pixels without visual light reflectance in landsat scene
         result *= visual_light_reflectance_mask
-        with rasterio.open(Path(path, 'classified_landcover.tif'), 'w', **metadata) as dst:
-            dst.write(result.astype(rasterio.uint8), 1)
-
+        with rasterio.open(Path(path, 'classified_landcover.tif'), 'w', **metadata) as destination:
+            destination.write(result.astype(rasterio.uint8), 1)
+        # ToDo return path

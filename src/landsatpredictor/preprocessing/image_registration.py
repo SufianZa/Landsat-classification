@@ -175,7 +175,7 @@ def get_multi_spectral(landsat_dataset_path):
         bands = []
         masks = []
         metadata = dataset.meta.copy()
-        # ToDo why do we set the band count to 1?
+        # Why do we set the band count to 1?
         # Because it is used for the final result that contains only one band -> should be moved to a better location
         metadata.update({'count': 1})
         # collect and normalize spectral bands

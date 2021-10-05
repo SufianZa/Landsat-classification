@@ -42,7 +42,7 @@ colors = [colors[i] for i, c in enumerate(original_classes) if c in selected_cla
 
 LANDSAT8_REFLECTANCE_BAND_MAX_VALUE = 65455
 """
-Max value for Landsat 8 reflectance bands.
+Max value for Landsat 8 reflectance bands. See values for surface reflectance.
 
 See https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2-level-2-science-products
 """
