@@ -54,7 +54,7 @@ LAND_COVER_FILE = "./CA_forest_VLCE_2015/CA_forest_VLCE_2015.tif"
 TRAIN_DATASETS = 'train'
 TEST_DATASETS = 'test'
 
-REQUIRED_LANDSAT8_BAND_INDICES = [2, 3, 4, 5, 6, 7]
+REQUIRED_LANDSAT8_BAND_INDICES = [1, 2, 3, 4, 5, 6]
 """
 Landsat 8 Level 2 bands for the prediction:
 B2 -> blue
@@ -69,4 +69,18 @@ See https://www.usgs.gov/faqs/what-are-band-designations-landsat-satellites
 
 Usage
 See https://www.usgs.gov/media/images/common-landsat-band-rgb-composites
+"""
+
+VISUAL_LIGHT_BANDS = [1, 2, 3]
+"""
+Indices of bands in visual light spectrum, e.g. Red, Green, Blue.
+
+For Landsat 8 Collection 2 Level 2: 2 -> blue, 3 -> green, 4 -> red
+
+For Coverages within TB17; 1 -> blue, 2 -> green, 3 -> red
+"""
+
+REQUIRED_BAND_COUNT = 6
+"""
+The prediction model requires 6 bands. More or less MUST cause an ValueError
 """

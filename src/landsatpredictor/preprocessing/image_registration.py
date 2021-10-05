@@ -25,7 +25,8 @@ from rasterio.warp import calculate_default_transform, reproject
 from rasterio.windows import from_bounds
 from skimage.exposure import equalize_hist
 
-from ..config import LAND_COVER_FILE, REQUIRED_LANDSAT8_BAND_INDICES, LANDSAT8_REFLECTANCE_BAND_MAX_VALUE, PADDING_EDGE
+from ..config import LAND_COVER_FILE, REQUIRED_LANDSAT8_BAND_INDICES, LANDSAT8_REFLECTANCE_BAND_MAX_VALUE, \
+    PADDING_EDGE, VISUAL_LIGHT_BANDS, REQUIRED_BAND_COUNT
 
 
 def merge_reprojected_bands(datasets_folder):
@@ -77,7 +78,7 @@ def rotate_datasets(landsat_dataset_path, enhance_colors=False, show_preprocessi
         # collect and normalize spectral bands
         for band_num in REQUIRED_LANDSAT8_BAND_INDICES:
             band = l_sat.read(band_num)
-            if band_num in [2, 3, 4]:
+            if band_num in VISUAL_LIGHT_BANDS:
                 masks.append(band != 0)
             band = band / LANDSAT8_REFLECTANCE_BAND_MAX_VALUE
             bands.append(band)
@@ -172,6 +173,8 @@ def rotate_datasets(landsat_dataset_path, enhance_colors=False, show_preprocessi
 
 def get_multi_spectral(landsat_dataset_path):
     with rasterio.open(landsat_dataset_path) as dataset:
+        if dataset.count != REQUIRED_BAND_COUNT:
+            raise ValueError('Number of bands != {}: {}'.format(REQUIRED_BAND_COUNT, dataset.count))
         bands = []
         masks = []
         metadata = dataset.meta.copy()
@@ -183,7 +186,7 @@ def get_multi_spectral(landsat_dataset_path):
             band = dataset.read(band_num)
             # for visual light bands (landsat 8 bands: 2 -> blue, 3 -> green, 4 -> red
             # for coverages result: 1 -> blue, 2 -> green, 3 -> red
-            if band_num in [2, 3, 4]:
+            if band_num in VISUAL_LIGHT_BANDS:
                 # add binary no data mask
                 masks.append(band != 0)
             # normalize band values to 0..1
