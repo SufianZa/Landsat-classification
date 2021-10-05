@@ -197,7 +197,7 @@ def get_multi_spectral(landsat_dataset_path):
         landsat_bands_normalized = np.array(bands).transpose([1, 2, 0])
 
         # combine visual reflectance masks: one band with reflectance per pixel is enough for true
-        mask = np.mean(np.array(masks).transpose([1, 2, 0]), axis=2)
+        mask = np.mean(np.array(masks), axis=0)
         mask[mask > 0] = 1
         mask[mask <= 0] = 0
     return landsat_bands_normalized, mask, metadata
