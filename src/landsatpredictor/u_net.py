@@ -242,7 +242,6 @@ class UNET:
         input_landsat_bands_normalized, visual_light_reflectance_mask, metadata = get_multi_spectral(Path(path))
         # self.model.load_weights(self.weight_file)
         input_width, input_height, input_band_count = input_landsat_bands_normalized.shape
-        # ToDo this might break with the changed indices between coverages and landsat
         in_image = np.reshape(input_landsat_bands_normalized, (1, input_width, input_height, input_band_count))
         result = np.zeros((input_width, input_height))
         for window_data, x, y, x_overflow, y_overflow in get_tiles_generator(input_width, input_height, self.window_size, trim, in_image):
@@ -258,6 +257,7 @@ class UNET:
         # ToDo change to log statement
         print(result.shape[0], result.shape[1])
         # skip all pixels without visual light reflectance in landsat scene
+        # ToDo potentially skip this when using numpy masked arrays
         result *= visual_light_reflectance_mask
         with rasterio.open(Path(path, 'classified_landcover.tif'), 'w', **metadata) as destination:
             destination.write(result.astype(rasterio.uint8), 1)

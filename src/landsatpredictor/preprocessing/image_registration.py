@@ -186,6 +186,7 @@ def get_multi_spectral(landsat_dataset_path):
             band = dataset.read(band_num)
             # for visual light bands (landsat 8 bands: 2 -> blue, 3 -> green, 4 -> red
             # for coverages result: 1 -> blue, 2 -> green, 3 -> red
+            # ToDo potentially skip this when using numpy masked arrays
             if band_num in VISUAL_LIGHT_BANDS:
                 # add binary no data mask
                 masks.append(band != 0)
@@ -196,6 +197,7 @@ def get_multi_spectral(landsat_dataset_path):
         # stacking Multi-spectral image containing -> (Blue, Green, Red, NIR, SWIR 1, SWIR 2)
         landsat_bands_normalized = np.array(bands).transpose([1, 2, 0])
 
+        # ToDo potentially skip this when using numpy masked arrays
         # combine visual reflectance masks: one band with reflectance per pixel is enough for true
         mask = np.mean(np.array(masks), axis=0)
         mask[mask > 0] = 1
