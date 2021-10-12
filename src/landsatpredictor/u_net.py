@@ -249,6 +249,8 @@ class UNET:
         # ToDo change to log statement
         print(result.shape[0], result.shape[1])
         # skip all pixels without visual light reflectance in landsat scene
+        # shift all classes +1 in the result, hence 0:= no data and not no_change
+        result += 1
         # ToDo potentially skip this when using numpy masked arrays
         result *= visual_light_reflectance_mask
         temp_result_file = tempfile.NamedTemporaryFile(delete=False, suffix='.tif', prefix='landcover_prediction_')
