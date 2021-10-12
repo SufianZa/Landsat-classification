@@ -54,19 +54,23 @@ PROCESS_METADATA = {
     'description': 'Landcover prediction with landsat',
     'keywords': ['landcover prediction', 'landsat', 'tb-17'],
     'jobControlOptions': 'async-execute',
-    'links': [{
-        'type': 'text/html',
-        'rel': 'canonical',
-        'title': 'Processor Repository',
-        'href': 'https://github.com/52North/Landsat-classification/blob/main/README.md',
-        'hreflang': 'en-US'
-    },{
-        'type': 'text/html',
-        'rel': 'canonical',
-        'title': 'Landsat 8 Collection 2 Level 2',
-        'href': 'https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2-level-2-science-products',
-        'hreflang': 'en-US'
-    }],
+    'outputTransmission': ['value'],
+    'links': [
+        {
+            'type': 'text/html',
+            'rel': 'canonical',
+            'title': 'Processor Repository',
+            'href': 'https://github.com/52North/Landsat-classification/blob/main/README.md',
+            'hreflang': 'en-US'
+        },
+        {
+            'type': 'text/html',
+            'rel': 'canonical',
+            'title': 'Landsat 8 Collection 2 Level 2',
+            'href': 'https://www.usgs.gov/core-science-systems/nli/landsat/landsat-collection-2-level-2-science-products',
+            'hreflang': 'en-US'
+        }
+    ],
     'inputs': {
         'landsat-collection-id': {
             'title': 'Name',
@@ -155,7 +159,7 @@ class LandcoverPredictionProcessor(BaseProcessor):
 
     def execute(self, data: dict) -> Tuple[str, Any]:
         # Workflow:
-        bbox, collection_id = self.parse_inputs(data)
+        bbox, collection_id = self._parse_inputs(data)
 
         # 2) Get array to use for the prediction with the correct bbox
         #    a) either using open data cube directly or
@@ -179,7 +183,9 @@ class LandcoverPredictionProcessor(BaseProcessor):
         #       to use, e.g., array input instead of path
         # 4) Make the prediction using this method https://github.com/SufianZa/Landsat-classification/blob/main/test.py
         # 5) Correctly encode the result of 4) as process output (geotiff)
-        self.model.estimate_raw_landsat(path=tmp_file, trim=20)
+        LOGGER.debug('Requesting prediction for file "{}"'.format(tmp_file))
+        result_file_path = self.model.estimate_raw_landsat(path=tmp_file, trim=20)
+        LOGGER.debug('Prediction received. Result in "{}"'.format(result_file_path))
 
         outputs = [{
             'id': 'echo',
@@ -190,7 +196,7 @@ class LandcoverPredictionProcessor(BaseProcessor):
         mimetype = 'application/json'
         return mimetype, outputs
 
-    def parse_inputs(self, data):
+    def _parse_inputs(self, data):
         LOGGER.debug("RAW Inputs:\n{}".format(json.dumps(data, indent=4)))
         # 1) Parse process inputs
         collection_id = data.get('landsat-collection-id', None)
