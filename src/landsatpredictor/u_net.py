@@ -225,23 +225,14 @@ class UNET:
          Estimates the full map image by sliding a window over and
            trimming off sides from each side of 256*256 patch
         :param path:
-             folder path of landsat scene
+             path to GeoTIFF with 6 bands in the order as ountline in ..config.REQUIRED_LANDSAT8_BAND_INDICES
         :param trim: int
             the number of pixels trimmed of each side of the predicted window
             e.g. 100 -> adds only the middle 56*56 square of the 256*256 patch to the result.
            The trimming is used to avoid creases and artifacts since patch-wise prediction
            has no knowledge of nearby structures from the next patch.
         """
-        # multi_image = [rasterio.open(band_path) for band_path in list(Path(path).glob('*SR_B[2-7].TIF'))]
-        # profile = multi_image[0].meta.copy()
-        # profile.update(count=7)
-        # with rasterio.open(Path(path, '%s.tif' % 'merged'), 'w',
-        #                    **profile) as dst:
-        #     for i, band in enumerate(multi_image, start=2):
-        #         dst.write(band.read(1), i)
-        #         band.close()
         input_landsat_bands_normalized, visual_light_reflectance_mask, metadata = get_multi_spectral(Path(path))
-        # self.model.load_weights(self.weight_file)
         input_width, input_height, input_band_count = input_landsat_bands_normalized.shape
         in_image = np.reshape(input_landsat_bands_normalized, (1, input_width, input_height, input_band_count))
         result = np.zeros((input_width, input_height))
