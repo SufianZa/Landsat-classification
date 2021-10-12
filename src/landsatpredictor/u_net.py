@@ -14,6 +14,7 @@
 # =================================================================
 import os
 import pickle
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -259,6 +260,7 @@ class UNET:
         # skip all pixels without visual light reflectance in landsat scene
         # ToDo potentially skip this when using numpy masked arrays
         result *= visual_light_reflectance_mask
-        with rasterio.open(Path(path, 'classified_landcover.tif'), 'w', **metadata) as destination:
+        temp_result_file = tempfile.NamedTemporaryFile(delete=False, suffix='.tif', prefix='landcover_prediction_')
+        with rasterio.open(temp_result_file.name, 'w', **metadata) as destination:
             destination.write(result.astype(rasterio.uint8), 1)
-        # ToDo return path
+        return temp_result_file.name
