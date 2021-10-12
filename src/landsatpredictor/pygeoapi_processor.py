@@ -168,6 +168,7 @@ class LandcoverPredictionProcessor(BaseProcessor):
         # 2) Get array to use for the prediction with the correct bbox
         #    a) either using open data cube directly or
         #    b) making a coverage request (may be slower but enables usage of external collections)
+        # ToDo add rangeset subset parameter to specify the required bands
         request = BASE_URL.format(collection_id, bbox)
         LOGGER.debug("Requesting coverage from '{}'".format(request))
         try:
