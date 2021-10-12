@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+
 import time
 from typing import Tuple, Any
 from urllib.error import HTTPError
@@ -180,6 +182,8 @@ class LandcoverPredictionProcessor(BaseProcessor):
             LOGGER.error(msg)
             raise ProcessorExecuteError(msg)
         # write response to temporary file used as input for prediction/estimation function
+        # ToDo replace next line with correct tempfile from above
+        tmp_file = os.getcwd() + '/tests/data/LC08_L2SP_035024_20150813_20200909_02_T1_merged_1-6.tif'
 
         # 3) If necessary adapt this function https://github.com/SufianZa/Landsat-classification/blob/main/u_net.py#L208
         #       to use, e.g., array input instead of path
