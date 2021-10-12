@@ -96,12 +96,14 @@ PROCESS_METADATA = {
         }
     },
     'outputs': {
-        'echo': {
+        'prediction': {
             'title': 'Landcover prediction',
-            'description': 'Landcover prediction with Landsat 8 Collection 2 Level 2 for water, herbs and coniferous',
+            'description':
+                'Landcover prediction with Landsat 8 Collection 2 Level 2 for no change, water, herbs and coniferous',
             'schema': {
-                'type': 'object',
-                'contentMediaType': 'application/json'
+                'type': 'string',
+                'format': 'byte',
+                'contentMediaType': 'image/tiff; application=geotiff'
             }
         }
     },
@@ -187,14 +189,9 @@ class LandcoverPredictionProcessor(BaseProcessor):
         result_file_path = self.model.estimate_raw_landsat(path=tmp_file, trim=20)
         LOGGER.debug('Prediction received. Result in "{}"'.format(result_file_path))
 
-        outputs = [{
-            'id': 'echo',
-            'collection_id': collection_id,
-            'bbox': bbox,
-            'path': tmp_file + 'classified_landcover.tif'
-        }]
-        mimetype = 'application/json'
-        return mimetype, outputs
+        mimetype = 'image/tiff; application=geotiff'
+        with open(result_file_path, 'r+b') as file:
+            return mimetype, file.read()
 
     def _parse_inputs(self, data):
         LOGGER.debug("RAW Inputs:\n{}".format(json.dumps(data, indent=4)))

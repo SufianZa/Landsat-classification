@@ -35,7 +35,7 @@ server:
     manager:
         name: TinyDB
         connection: /tmp/pygeoapi-process-manager.db
-        output_dir: /tmp/
+        output_dir: /tmp/pygeoapi-process-outputs/
     map:
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
