@@ -13,7 +13,14 @@
 #
 # =================================================================
 from pathlib import Path
+import rasterio
 from src.landsatpredictor.u_net import UNET
+from src.landsatpredictor.preprocessing.image_registration import get_multi_spectral
 
 model = UNET(batch_size=24, epochs=50)
-model.estimate_raw_landsat(path=Path('test', 'LC08_L2SP_035024'), trim=5)
+
+landsat_file_path = Path('test', 'LC08_L2SP_035024')
+with rasterio.open(landsat_file_path) as dataset:
+    input_landsat_bands_normalized, visual_light_reflectance_mask, metadata = get_multi_spectral(dataset)
+
+model.estimate_raw_landsat(input_landsat_bands_normalized, visual_light_reflectance_mask, metadata, trim=5)

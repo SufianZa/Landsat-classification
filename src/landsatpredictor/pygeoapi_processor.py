@@ -20,10 +20,14 @@ import os
 
 import time
 from typing import Tuple, Any
+import rasterio
+from rasterio.io import MemoryFile
+from pathlib import Path
 from urllib.error import HTTPError
 
 import requests
-from landsatpredictor.u_net import UNET
+from .u_net import UNET
+from .preprocessing.image_registration import get_multi_spectral
 from pygeoapi.process.base import (BaseProcessor, ProcessorExecuteError)
 
 BASE_URL = "https://17.testbed.dev.52north.org/geodatacube/collections/{}/coverage?f=NetCDF&bbox={}"
@@ -74,9 +78,10 @@ PROCESS_METADATA = {
         }
     ],
     'inputs': {
-        'landsat-collection-id': {
-            'title': 'Name',
-            'description': 'id of the OGC API coverages collection providing the landsat data',
+        'collection': {
+            'title': 'Coverage',
+            'description': 'url of the OGC API coverages collection providing the landsat data (must start with http '
+                           'or https)',
             'schema': {
                 'type': 'string'
             },
@@ -162,38 +167,15 @@ class LandcoverPredictionProcessor(BaseProcessor):
         self.model = ModelCache.instance()
 
     def execute(self, data: dict) -> Tuple[str, Any]:
-        # Workflow:
-        bbox, collection_id = self._parse_inputs(data)
 
-        # 2) Get array to use for the prediction with the correct bbox
-        #    a) either using open data cube directly or
-        #    b) making a coverage request (may be slower but enables usage of external collections)
-        # ToDo add rangeset subset parameter to specify the required bands
-        request = BASE_URL.format(collection_id, bbox)
-        LOGGER.debug("Requesting coverage from '{}'".format(request))
-        try:
-            with requests.get(request, verify=False, stream=True) as request:
-                request.raise_for_status()
-                # ToDo use correct temp file and use tmp file name as input for unet.estimate_raw
-                with open('/tmp/temp.geotiff', 'wb') as file:
-                    for chunk in request.iter_content(chunk_size=8192):
-                        file.write(chunk)
-        except HTTPError as err:
-            msg = 'Requesting input data failed: {}'.format(request)
-            LOGGER.error(msg)
-            raise ProcessorExecuteError(msg)
-        # write response to temporary file used as input for prediction/estimation function
-        # ToDo replace next line with correct tempfile from above
-        tmp_file = os.getcwd() + '/tests/data/LC08_L2SP_035024_20150813_20200909_02_T1_merged_1-6.tif'
+        bbox, collection = self._parse_inputs(data)
+        input_landsat_bands_normalized, visual_light_reflectance_mask, metadata = self._process_collection(collection, bbox)
 
-        # 3) If necessary adapt this function https://github.com/SufianZa/Landsat-classification/blob/main/u_net.py#L208
-        #       to use, e.g., array input instead of path
-        # 4) Make the prediction using this method https://github.com/SufianZa/Landsat-classification/blob/main/test.py
-        # 5) Correctly encode the result of 4) as process output (geotiff)
-        LOGGER.debug('Requesting prediction for file "{}"'.format(tmp_file))
-        result_file_path = self.model.estimate_raw_landsat(path=tmp_file, trim=20)
+        LOGGER.debug('Requesting prediction for "{}"'.format(collection))
+        result_file_path = self.model.estimate_raw_landsat(input_landsat_bands_normalized, visual_light_reflectance_mask, metadata, trim=20)
         LOGGER.debug('Prediction received. Result in "{}"'.format(result_file_path))
 
+        # ToDo: Correctly return process output as geotiff
         mimetype = 'image/tiff; application=geotiff'
         with open(result_file_path, 'r+b') as file:
             return mimetype, file.read()
@@ -201,24 +183,59 @@ class LandcoverPredictionProcessor(BaseProcessor):
     def _parse_inputs(self, data):
         LOGGER.debug("RAW Inputs:\n{}".format(json.dumps(data, indent=4)))
         # 1) Parse process inputs
-        collection_id = data.get('landsat-collection-id', None)
+        collection = data.get('collection', None)
         bbox = data.get('bbox', None)
-        if collection_id is None:
-            raise ProcessorExecuteError('Cannot process without a collection_id')
+        if collection is None:
+            raise ProcessorExecuteError('Cannot process without a collection')
         if bbox is None:
             raise ProcessorExecuteError('Cannot process without a bbox')
         LOGGER.debug('Parsed Process inputs')
-        LOGGER.debug('collection_id: {}'.format(collection_id))
-        LOGGER.debug('bbox         : {}'.format(bbox))
+        LOGGER.debug('collection       : {}'.format(collection))
+        LOGGER.debug('bbox             : {}'.format(bbox))
         bbox_coords = [s.strip() for s in bbox.split(",")]
         if len(bbox_coords) != 4:
             raise ProcessorExecuteError("Received bbox '{}' could not be split into four (4) elements by ','."
                                         .format(bbox))
         bbox_float_coords = list(map(float, bbox_coords))
         if not all(isinstance(x, float) for x in bbox_float_coords):
-            raise ProcessorExecuteError("Received bbox '{}' could not be converted completly to integer."
+            raise ProcessorExecuteError("Received bbox '{}' could not be converted completely to integer."
                                         .format(bbox))
-        return bbox, collection_id
+        return bbox, collection
+
+    def _process_collection(self, collection, bbox):
+        if collection.startswith('http'):
+            if not collection.endswith('/'):
+                collection = collection + '/'
+            coverage_download_url = collection + 'coverage?f=GeoTIFF&bbox=' + bbox
+
+            LOGGER.debug("Requesting coverage from '{}'".format(coverage_download_url))
+            try:
+                with requests.get(coverage_download_url, verify=False, stream=True) as request:
+                    request.raise_for_status()
+
+                    with MemoryFile(request.content) as memfile:
+                        with memfile.open() as dataset:
+                            return get_multi_spectral(dataset)
+
+                    # ToDo use correct temp file and use tmp file name as input for unet.estimate_raw
+                    # with open('/tmp/temp.geotiff', 'wb') as file:
+                    #     for chunk in request.iter_content(chunk_size=8192):
+                    #         file.write(chunk)
+            except HTTPError as err:
+                msg = 'Requesting input data failed: {}'.format(coverage_download_url)
+                LOGGER.error(msg)
+                raise ProcessorExecuteError(msg)
+            # write response to temporary file used as input for prediction/estimation function
+            # ToDo: add logger output, e.g. error/warning if request wasn't successful
+
+        elif collection.startswith('file'):
+            # ToDo replace next line with correct tempfile from above
+            landsat_file_path = os.getcwd() + '/tests/data/LC08_L2SP_035024_20150813_20200909_02_T1_merged_1-6.tif'
+
+            with rasterio.open(landsat_file_path) as dataset:
+                return get_multi_spectral(dataset)
+        else:
+            raise(ProcessorExecuteError("Invalid collection input received: '{}'.".format(collection)))
 
     def __repr__(self):
         return '<LandcoverPredictionProcessor> {}'.format(self.name)

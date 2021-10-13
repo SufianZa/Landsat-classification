@@ -31,7 +31,6 @@ from tensorflow.python.keras.optimizer_v2.adam import Adam
 from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
 from .config import selected_classes, colors, colors_legend
-from .preprocessing.image_registration import get_multi_spectral
 
 
 def dice_coef(y_true, y_pred, smooth=1):
@@ -220,19 +219,20 @@ class UNET:
             plt.legend(handles=colors_legend, borderaxespad=-15, fontsize='x-small')
             plt.show()
 
-    def estimate_raw_landsat(self, path: Path, trim=20):
+    def estimate_raw_landsat(self, input_landsat_bands_normalized, visual_light_reflectance_mask, metadata, trim=20):
         """
          Estimates the full map image by sliding a window over and
            trimming off sides from each side of 256*256 patch
-        :param path:
-             path to GeoTIFF with 6 bands in the order as ountline in ..config.REQUIRED_LANDSAT8_BAND_INDICES
+        :param metadata:
+        :param input_landsat_bands_normalized:
+        :param visual_light_reflectance_mask:
         :param trim: int
             the number of pixels trimmed of each side of the predicted window
             e.g. 100 -> adds only the middle 56*56 square of the 256*256 patch to the result.
            The trimming is used to avoid creases and artifacts since patch-wise prediction
            has no knowledge of nearby structures from the next patch.
         """
-        input_landsat_bands_normalized, visual_light_reflectance_mask, metadata = get_multi_spectral(Path(path))
+
         input_width, input_height, input_band_count = input_landsat_bands_normalized.shape
         in_image = np.reshape(input_landsat_bands_normalized, (1, input_width, input_height, input_band_count))
         result = np.zeros((input_width, input_height))
