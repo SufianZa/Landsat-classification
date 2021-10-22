@@ -229,8 +229,7 @@ class LandcoverPredictionProcessor(BaseProcessor):
             # ToDo: add logger output, e.g. error/warning if request wasn't successful
 
         elif collection.startswith('file'):
-            # ToDo replace next line with correct tempfile from above
-            landsat_file_path = os.getcwd() + '/tests/data/LC08_L2SP_035024_20150813_20200909_02_T1_merged_1-6.tif'
+            landsat_file_path = str(Path(collection).resolve())
 
             with rasterio.open(landsat_file_path) as dataset:
                 return get_multi_spectral(dataset)
