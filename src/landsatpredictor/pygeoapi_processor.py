@@ -115,10 +115,13 @@ PROCESS_METADATA = {
         }
     },
     'example': {
-        "inputs": {
-            "landsat-collection-id": "landsat8_c2_l2",
-            "bbox": "-111.0,64.99,-110.99,65.0"
-        }
+        'inputs': {
+            'collection': 'https://17.testbed.dev.52north.org/geodatacube/collections/landsat8_c2_l2',
+            'bbox': '-111.0,64.99,-110.99,65.0'
+        },
+        'jobControlOptions': ['async-execute'],
+        'outputTransmission': ['value'],
+        'response': 'raw'
     }
 }
 
