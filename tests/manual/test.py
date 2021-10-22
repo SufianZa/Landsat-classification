@@ -14,13 +14,15 @@
 # =================================================================
 from pathlib import Path
 import rasterio
-from src.landsatpredictor.u_net import UNET
-from src.landsatpredictor.preprocessing.image_registration import get_multi_spectral
+from landsatpredictor.u_net import UNET
+from landsatpredictor.preprocessing.image_registration import get_multi_spectral
 
-model = UNET(batch_size=24, epochs=50)
+model = UNET(weight_file= '../../data/3_class_best_weight.hdf5', batch_size=24, epochs=50)
 
-landsat_file_path = Path('test', 'LC08_L2SP_035024')
+landsat_file_path = Path('..', 'data', 'LC08_L2SP_035024_20150813_20200909_02_T1_merged_1-6_cropped.tif')
 with rasterio.open(landsat_file_path) as dataset:
     input_landsat_bands_normalized, visual_light_reflectance_mask, metadata = get_multi_spectral(dataset)
 
-model.estimate_raw_landsat(input_landsat_bands_normalized, visual_light_reflectance_mask, metadata, trim=5)
+result_file = model.estimate_raw_landsat(input_landsat_bands_normalized, visual_light_reflectance_mask, metadata, trim=5)
+
+print('Estimation result can be found in file "{}"'.format(Path(result_file).resolve()))
