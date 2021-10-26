@@ -56,9 +56,9 @@ LOGGER = logging.getLogger(__name__)
 PROCESS_METADATA = {
     'version': '0.1.0',
     'id': 'landcover-prediction',
-    'title': 'Landcover prediction',
-    'description': 'Landcover prediction with landsat',
-    'keywords': ['landcover prediction', 'landsat', 'tb-17'],
+    'title': 'Land cover prediction',
+    'description': 'Land cover prediction with Landsat 8',
+    'keywords': ['land cover prediction', 'landsat 8', 'tb-17'],
     'jobControlOptions': 'async-execute',
     'outputTransmission': ['value'],
     'links': [
@@ -80,8 +80,9 @@ PROCESS_METADATA = {
     'inputs': {
         'collection': {
             'title': 'Coverage',
-            'description': 'url of the OGC API coverages collection providing the landsat data (must start with http '
-                           'or https)',
+            'description': 'url of the OGC API Coverages collection providing the Landsat 8 Collection 2 '
+                           'Level 2 data (must start with http or https and include the following bands:'
+                           ' blue, green, red, nir, swir1, swir2)',
             'schema': {
                 'type': 'string'
             },
@@ -92,7 +93,7 @@ PROCESS_METADATA = {
         },
         'bbox': {
             'title': 'Spatial bounding box',
-            'description': 'Spatial bounding box in WGS84',
+            'description': 'Spatial bounding box in WGS84 (format: "min lon, min lat, max lon, max lat")',
             'schema': {
                 'type': 'string'
             },
@@ -104,9 +105,10 @@ PROCESS_METADATA = {
     },
     'outputs': {
         'prediction': {
-            'title': 'Landcover prediction',
+            'title': 'Land cover prediction',
             'description':
-                'Landcover prediction with Landsat 8 Collection 2 Level 2 for no change, water, herbs and coniferous',
+                'Land cover prediction with Landsat 8 Collection 2 Level 2 for no change (=1), '
+                'water (=2), coniferous (=3) and herbs (=4) (no data=0)',
             'schema': {
                 'type': 'string',
                 'format': 'byte',
@@ -117,7 +119,7 @@ PROCESS_METADATA = {
     'example': {
         'inputs': {
             'collection': 'https://17.testbed.dev.52north.org/geodatacube/collections/landsat8_c2_l2',
-            'bbox': '-111.0,64.99,-110.99,65.0'
+            'bbox': '-110.99,52.62,-109.28,53.66'
         },
         'jobControlOptions': ['async-execute'],
         'outputTransmission': ['value'],
