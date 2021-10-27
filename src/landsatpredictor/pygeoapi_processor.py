@@ -88,7 +88,8 @@ PROCESS_METADATA = {
             },
             'minOccurs': 1,
             'maxOccurs': 1,
-            'metadata': None,  # TODO how to use?
+            # TODO how to use?
+            'metadata': None,
             'keywords': ['landsat']
         },
         'bbox': {
@@ -119,8 +120,9 @@ PROCESS_METADATA = {
     'example': {
         'inputs': {
             'collection': 'https://17.testbed.dev.52north.org/geodatacube/collections/landsat8_c2_l2',
-            'bbox': '-110.99,52.62,-109.28,53.66'
+            'bbox': '-104.7,51.4,-103.0,52.6'
         },
+         # pygeoapi uses mode: async
         'jobControlOptions': ['async-execute'],
         'outputTransmission': ['value'],
         'response': 'raw'
