@@ -31,6 +31,7 @@ from .preprocessing.image_registration import get_multi_spectral
 from pygeoapi.process.base import (BaseProcessor, ProcessorExecuteError)
 
 BASE_URL = "https://17.testbed.dev.52north.org/geodatacube/collections/{}/coverage?f=NetCDF&bbox={}"
+GEOTIFF_MIME_TYPES = ['application/geotiff', 'image/tiff;application=geotiff','image/geo+tiff']
 
 LOGGER = logging.getLogger(__name__)
 
@@ -79,12 +80,21 @@ PROCESS_METADATA = {
     ],
     'inputs': {
         'collection': {
-            'title': 'Coverage',
+            'title': 'Coverage collection',
             'description': 'url of the OGC API Coverages collection providing the Landsat 8 Collection 2 '
                            'Level 2 data (must start with http or https and include the following bands:'
                            ' blue, green, red, nir, swir1, swir2)',
             'schema': {
-                'type': 'string'
+                'oneOf': [
+                    {
+                        'type': 'string',
+                    },
+                    {
+                        'type': 'string',
+                        'contentEncoding': 'binary',
+                        'contentMediaType': 'image/tiff; application=geotiff'
+                    }
+                ]
             },
             'minOccurs': 1,
             'maxOccurs': 1,
@@ -94,11 +104,15 @@ PROCESS_METADATA = {
         },
         'bbox': {
             'title': 'Spatial bounding box',
-            'description': 'Spatial bounding box in WGS84 (format: "min lon, min lat, max lon, max lat")',
+            'description': 'Spatial bounding box in WGS84',
             'schema': {
-                'type': 'string'
+                "allOf": [
+                    {'format': 'ogc-bbox'},
+                    {'$ref': 'https://raw.githubusercontent.com/opengeospatial/ogcapi-processes/master/core/openapi/schemas/bbox.yaml'}
+                ],
+                'default': {'bbox': [-104.6, 51.8, -103.7, 52.6], 'crs': 'http://www.opengis.net/def/crs/OGC/1.3/CRS84'}
             },
-            'minOccurs': 1,
+            'minOccurs': 0,
             'maxOccurs': 1,
             'metadata': None,
             'keywords': ['bbox']
@@ -119,8 +133,13 @@ PROCESS_METADATA = {
     },
     'example': {
         'inputs': {
-            'collection': 'https://17.testbed.dev.52north.org/geodatacube/collections/landsat8_c2_l2',
-            'bbox': '-104.7,51.4,-103.0,52.6'
+            'collection': {
+                'collection': 'https://17.testbed.dev.52north.org/geodatacube/collections/landsat8_c2_l2'
+            },
+            'bbox': {
+                'bbox': [-104.6, 51.8, -103.7, 52.6],
+                'crs': 'http://www.opengis.net/def/crs/OGC/1.3/CRS84'
+            }
         },
          # pygeoapi uses mode: async
         'jobControlOptions': ['async-execute'],
@@ -182,38 +201,64 @@ class LandcoverPredictionProcessor(BaseProcessor):
         result_file_path = self.model.estimate_raw_landsat(input_landsat_bands_normalized, visual_light_reflectance_mask, metadata, trim=20)
         LOGGER.debug('Prediction received. Result in "{}"'.format(result_file_path))
 
-        # ToDo: Correctly return process output as geotiff
         mimetype = 'image/tiff; application=geotiff'
         with open(result_file_path, 'r+b') as file:
             return mimetype, file.read()
 
     def _parse_inputs(self, data):
         LOGGER.debug("RAW Inputs:\n{}".format(json.dumps(data, indent=4)))
-        # 1) Parse process inputs
-        collection = data.get('collection', None)
-        bbox = data.get('bbox', None)
-        if collection is None:
+        # ToDo: add support for base64-encoded geotiffs
+        collection_input = data.get('collection', None)
+        bbox_input = data.get('bbox', None)
+        if collection_input is None:
             raise ProcessorExecuteError('Cannot process without a collection')
-        if bbox is None:
-            raise ProcessorExecuteError('Cannot process without a bbox')
+        else:
+            collection = collection_input.get('collection')
+        if bbox_input is None:
+            bbox = [-104.6, 51.8, -103.7, 52.6]
+            LOGGER.debug('No bbox input given. Using default bbox: {}'.format(bbox))
+        else:
+            bbox = bbox_input.get('bbox')
+
+        if len(bbox) != 4:
+            raise ProcessorExecuteError("Received bbox '{}' is not an array containing four elements."
+                                        .format(bbox))
+
         LOGGER.debug('Parsed Process inputs')
         LOGGER.debug('collection       : {}'.format(collection))
         LOGGER.debug('bbox             : {}'.format(bbox))
-        bbox_coords = [s.strip() for s in bbox.split(",")]
-        if len(bbox_coords) != 4:
-            raise ProcessorExecuteError("Received bbox '{}' could not be split into four (4) elements by ','."
-                                        .format(bbox))
-        bbox_float_coords = list(map(float, bbox_coords))
-        if not all(isinstance(x, float) for x in bbox_float_coords):
-            raise ProcessorExecuteError("Received bbox '{}' could not be converted completely to integer."
-                                        .format(bbox))
+
         return bbox, collection
 
     def _process_collection(self, collection, bbox):
+
         if collection.startswith('http'):
+
+            # Get format string for geotiff defined by the server from the links
+            collection_url = collection + '?f=json'
+            try:
+                with requests.get(collection_url) as request:
+                    request.raise_for_status()
+                    collection_json = request.json()
+                    collection_links = collection_json.get('links', None)
+                    if collection_links:
+                        format_geotiff = None
+                        for link in collection_links:
+                            if link['type'].replace(" ", "") in GEOTIFF_MIME_TYPES:
+                                format_geotiff = link['href'].split('f=')[-1]
+                        if format_geotiff is None:
+                            raise ProcessorExecuteError('No link found for collection {} to get coverage data as geotiff.'.format(collection))
+                    else:
+                        raise ProcessorExecuteError('The collection {} has no links.'.format(collection))
+            except HTTPError as err:
+                msg = 'Requesting collection metadata failed: {}'.format(collection_url)
+                LOGGER.error(msg)
+                raise ProcessorExecuteError(msg)
+
+            # Request coverage data
             if not collection.endswith('/'):
                 collection = collection + '/'
-            coverage_download_url = collection + 'coverage?f=GeoTIFF&bbox=' + bbox
+            coverage_download_url = collection + 'coverage?f={}&bbox={}'.format(format_geotiff, ','.join(map(str, bbox)))
 
             LOGGER.debug("Requesting coverage from '{}'".format(coverage_download_url))
             try:
