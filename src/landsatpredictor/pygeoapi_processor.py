@@ -116,7 +116,18 @@ PROCESS_METADATA = {
             'maxOccurs': 1,
             'metadata': None,
             'keywords': ['bbox']
-        }
+        },
+        'bands': {
+            'title': 'Bands',
+            'description': 'Landsat 8 bands (comma-separated list, e.g. "blue, green, red, nir, swir1, swir2")',
+            'schema': {
+                'type': 'string'
+            },
+            'minOccurs': 0,
+            'maxOccurs': 1,
+            'metadata': None,
+            'keywords': ['bands']
+        },
     },
     'outputs': {
         'prediction': {
@@ -194,8 +205,8 @@ class LandcoverPredictionProcessor(BaseProcessor):
 
     def execute(self, data: dict) -> Tuple[str, Any]:
 
-        bbox, collection = self._parse_inputs(data)
-        input_landsat_bands_normalized, visual_light_reflectance_mask, metadata = self._process_collection(collection, bbox)
+        bbox, collection, bands = self._parse_inputs(data)
+        input_landsat_bands_normalized, visual_light_reflectance_mask, metadata = self._process_collection(collection, bbox, bands)
 
         LOGGER.debug('Requesting prediction for "{}"'.format(collection))
         result_file_path = self.model.estimate_raw_landsat(input_landsat_bands_normalized, visual_light_reflectance_mask, metadata, trim=20)
@@ -210,6 +221,7 @@ class LandcoverPredictionProcessor(BaseProcessor):
         # ToDo: add support for base64-encoded geotiffs
         collection_input = data.get('collection', None)
         bbox_input = data.get('bbox', None)
+        bands = data.get('bands', None)
         if collection_input is None:
             raise ProcessorExecuteError('Cannot process without a collection')
         else:
@@ -221,18 +233,24 @@ class LandcoverPredictionProcessor(BaseProcessor):
             bbox = bbox_input.get('bbox')
 
         if len(bbox) != 4:
-            raise ProcessorExecuteError("Received bbox '{}' is not an array containing four elements."
-                                        .format(bbox))
+            msg = "Received bbox '{}' is not an array containing four elements.".format(bbox)
+            LOGGER.error(msg)
+            raise ProcessorExecuteError(msg)
 
         LOGGER.debug('Parsed Process inputs')
         LOGGER.debug('collection       : {}'.format(collection))
         LOGGER.debug('bbox             : {}'.format(bbox))
+        if bands:
+            LOGGER.debug('bands             : {}'.format(bands))
 
-        return bbox, collection
+        return bbox, collection, bands
 
-    def _process_collection(self, collection, bbox):
+    def _process_collection(self, collection, bbox, bands):
 
         if collection.startswith('http'):
+
+            if collection.endswith('/'):
+                collection = collection[:-1]
 
             # Get format string for geotiff defined by the server from the links
             collection_url = collection + '?f=json'
@@ -247,7 +265,9 @@ class LandcoverPredictionProcessor(BaseProcessor):
                             if link['type'].replace(" ", "") in GEOTIFF_MIME_TYPES:
                                 format_geotiff = link['href'].split('f=')[-1]
                         if format_geotiff is None:
-                            raise ProcessorExecuteError('No link found for collection {} to get coverage data as geotiff.'.format(collection))
+                            msg = 'No link found for collection {} to get coverage data as geotiff.'.format(collection)
+                            LOGGER.error(msg)
+                            raise ProcessorExecuteError(msg)
                     else:
                         raise ProcessorExecuteError('The collection {} has no links.'.format(collection))
             except HTTPError as err:
@@ -255,10 +275,31 @@ class LandcoverPredictionProcessor(BaseProcessor):
                 LOGGER.error(msg)
                 raise ProcessorExecuteError(msg)
 
+            # Check if bands are in rangetype
+            if bands:
+                band_names = [band.strip() for band in bands.split(",")]
+                collection_rangetype_url = collection + '/coverage/rangetype?f=json'
+                try:
+                    with requests.get(collection_rangetype_url) as request:
+                        collection_rangetype_json = request.json()
+                        fields = []
+                        for field in collection_rangetype_json['field']:
+                            fields.append(field['name'])
+                        for band in band_names:
+                            if band not in fields:
+                                msg = 'Band {} it not provided by the collection.'.format(band)
+                                LOGGER.error(msg)
+                                raise ProcessorExecuteError(msg)
+                except HTTPError as err:
+                    msg = 'Requesting collection rangetype failed: {}'.format(collection_rangetype_json)
+                    LOGGER.error(msg)
+                    raise ProcessorExecuteError(msg)
+
             # Request coverage data
-            if not collection.endswith('/'):
-                collection = collection + '/'
-            coverage_download_url = collection + 'coverage?f={}&bbox={}'.format(format_geotiff, ','.join(map(str, bbox)))
+            if bands:
+                coverage_download_url = collection + '/coverage?f={}&bbox={}&range-subset={}'.format(format_geotiff, ','.join(map(str, bbox)), bands)
+            else:
+                coverage_download_url = collection + '/coverage?f={}&bbox={}'.format(format_geotiff, ','.join(map(str, bbox)))
 
             LOGGER.debug("Requesting coverage from '{}'".format(coverage_download_url))
             try:
