@@ -1,3 +1,7 @@
+# ARCHIVED
+
+This project is no longer maintained and will not receive any further updates. If you plan to continue using it, please be aware that future security issues will not be addressed.
+
 # TB17-landsat ML model for land cover classification 
 
 An Instance Segmentation model to classify different landcover classes using raw satellite imagery.
